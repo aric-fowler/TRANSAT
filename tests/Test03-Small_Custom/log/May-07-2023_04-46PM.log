@@ -1,0 +1,22 @@
+May-07-2023_04-46PM INFO: SAT attack script called at: 2023-05-07
+
+May-07-2023_04-46PM INFO: Target PL file: <_io.TextIOWrapper name='encryptCustom_pl.py' mode='r' encoding='UTF-8'>
+
+May-07-2023_04-46PM INFO: Output directories created.
+
+May-07-2023_04-46PM INFO: Miter logic successfully created. Miter CNF located at: /home/axf190026/Projects/TRAP/Security/SAT_Tools_v2/tests/Test03-Small_Custom/outputs_May-07-2023_04-46PM/miter.py
+
+May-07-2023_04-46PM INFO: Miter circuit SATISFIED at iteration #1. Extracted key:{'C': False, 'A': True, 'B': False}
+
+May-07-2023_04-46PM INFO: Miter circuit SATISFIED at iteration #2. Extracted key:{'C': True, 'A': True, 'B': True}
+
+May-07-2023_04-46PM INFO: Miter circuit SATISFIED at iteration #3. Extracted key:{'C': True, 'A': False, 'B': True}
+
+May-07-2023_04-46PM INFO: Miter circuit SATISFIED at iteration #4. Extracted key:{'C': False, 'A': False, 'B': False}
+
+May-07-2023_04-46PM INFO: Miter circuit UNSATISFIED at iteration #5
+
+May-07-2023_04-46PM INFO: Key extracted successfully: {'k3': True, 'k4': True, 'k1': True, 'k2': True}
+
+May-07-2023_04-46PM INFO: Script concluded. Total runtime: 0:00:00.593549 seconds
+
