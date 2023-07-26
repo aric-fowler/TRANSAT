@@ -1,9 +1,7 @@
 # STRAPT
 
 STRAPT, or "Satisfiability TRAP Tools", is a Python library for launching SAT-related functions on the Univesity 
-of Texas - Dallas.
-
-TRAnsistor-level Programmable fabric (TRAP) technology. These functions include SAT attacks, 
+of Texas - Dallas TRAP TRAnsistor-level Programmable fabric (TRAP) technology. These functions include SAT attacks, 
 SAT-based routing, and SAT-based synthesis. While TRAP is a transistor-level approach to 
 implementing logic functions, these tools should be able to be extended to other types of logic
 circuits, including logic-locked circuits (results may vary).
