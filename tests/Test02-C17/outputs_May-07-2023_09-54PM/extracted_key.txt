@@ -1,1 +1,0 @@
-{'k0': True, 'k3': False, 'k1': False, 'k2': False}
