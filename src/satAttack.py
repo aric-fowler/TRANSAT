@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 '''
-Script for running a SAT attack on an encrypted NAND2 gate.
+Script for running a SAT attack on encrypted circuits, described in Z3 
+for Python, with an unencrypted oracle described in Verilog HDL.
 
 Author:     Aric Fowler
 Python:     3.10.6
@@ -9,10 +10,10 @@ Updated:    May 2023
 import os
 import sys
 import apt
-import argparse
 import shutil
 import glob
 import re
+import argparse
 import logging
 import datetime
 import importlib
@@ -34,13 +35,13 @@ tbOutputFile = 'vOut'
 here = os.getcwd()
 now = datetime.datetime.now().strftime(logDateFormat)
 
-outDir = 'outputs' + '_' + now + '/'
+workDir = 'work' + '/'
 logDir = 'log' + '/'
 
-miterFile = os.path.join(here,outDir) + miterName + '.py'
-dipCircuitsFile = os.path.join(here,outDir) + dipCircuitsName + '.py'
-tb = os.path.join(here,outDir) + tbName
-extractedKeyFile = os.path.join(here,outDir) + 'extracted_key.txt'
+miterFile = os.path.join(here,workDir) + miterName + '.py'
+dipCircuitsFile = os.path.join(here,workDir) + dipCircuitsName + '.py'
+tb = os.path.join(here,workDir) + tbName
+extractedKeyFile = os.path.join(here,workDir) + 'extracted_key.txt'
 
 
 
@@ -125,46 +126,33 @@ def editLastLine(file:str,newLine:str):
         f.write(str.encode(newLine))
 
 
-def setup():
+def setup(plLogicFile,fresh,pythonOracle,verbosity):
     '''
     Parses input arguments, creates output and log directories, sets up logging, and elevates select
     variables to global scope.
     '''
-    # Some more globals
-    global clArgs
-
-    # Parse necessary input arguments
-    parser = argparse.ArgumentParser()
-    parser.add_argument('plLogicFile',type=argparse.FileType('r'),default=sys.stdin,help='Path to the Python file containing propositional logic clauses to be solved. Clauses must be written in the Z3 Python format. For help, see: https://www.cs.toronto.edu/~victorn/tutorials/sat20/index.html#installation')
-    parser.add_argument('inputList',type=argparse.FileType('r'),help='Path to the text file containing a list of inputs to the plLogicFile. Inputs must be separated by a space or newline character')
-    parser.add_argument('keyList',type=argparse.FileType('r'),help='Path to the text file containing a list of key inputs to the plLogicFile. Keys must be separated by a space or newline character')
-    parser.add_argument('outputList',type=argparse.FileType('r'),help='Path to the text file containing a list of outputs to the plLogicFile. Outputs must be separated by a space or newline character')
-    parser.add_argument('oracleNetlist',type=str,help='Name + extension of the HDL netlist file for the unencrypted, oracle black box. Input and output names must coincide with what is found in the inputList and outputList files')
-    parser.add_argument('topModule',type=str,help='Top-level module name within "oracleNetlist"')
-    parser.add_argument('-f','--fresh',action='store_true',default=False,help='Create fresh directories for SAT attack. WARNING: deletes preexisting logs and outputs')
-    parser.add_argument('-po','--pythonOracle',default=False,action='store_true',help='If true, oraclenetlist points to a Python oracle file (alternative to using iVerilog). Oracle function must be declared as "main", and all input variable names must coincide with inputList')
-    parser.add_argument('-v','--verbosity',action='store_true',help='Print progress of SAT attack to terminal')
-
-    clArgs = parser.parse_args()
-
-    if not clArgs.verbosity: blockPrint()
+    if not verbosity: blockPrint()
     print('Executing {}'.format(os.path.basename(__file__)))
 
     # Setup logging & output directories
-    initDirs(outDir,logDir,freshDirs=clArgs.fresh)
+    initDirs(workDir,logDir,freshDirs=fresh)
     logging.basicConfig(
         filename= os.path.join(here,logDir) + now + '.log',
         format=logFormat,
         datefmt=logDateFormat,
         level=logging.DEBUG)
     logging.info('SAT attack script called at: {}'.format(datetime.date.today()))
-    logging.info('Target PL file: {}'.format(clArgs.plLogicFile))
+    logging.info('Target PL file: {}'.format(plLogicFile))
     logging.info('Output directories created.')
 
-    sys.path.append(outDir)
+    sys.path.append(workDir)
+
+    # Do a one-time check to ensure the I/O listed in the I/O text lists match the names 
+    # found in the encrypted logic and the decrypted oracle netlist.
+    logging.warning('Code does not currently support cross-checking I/O names found in text lists against netlist files. Please check manually.')
 
     # Check to see if iVerilog is installed if "-po" argument is not provided
-    if clArgs.pythonOracle is None:
+    if pythonOracle is None:
         try:
             cache = apt.Cache()
             if cache['iverilog'].is_installed:
@@ -230,13 +218,13 @@ def writeZ3pl(z3Lines:list,z3Vars:dict,z3Fn:str,append=False) -> int:
     clauseList.extend(z3Lines)
 
     with open(z3Fn,'w') as f:
-        f.write('from z3 import *\n\n\ndef main():\n')       # RESUME WORK HERE: z3Fn should not be a string
+        f.write('from z3 import *\n\n\ndef main():\n')
         for var,varType in varList.items():
             f.write("\t{n} = {t}('{n}')\n".format(n=var,t=varType))
         f.write('\n')
         for i,line in enumerate(clauseList):
             clauseIndList.append('c{}'.format(i))
-            f.write('\t{0} = {1} \n'.format(clauseIndList[i],line))
+            f.write('\t{0} = {1}\n'.format(clauseIndList[i],line))
         f.write("\n\ts = Solver()\n\ts.add({})\n\ttry:\n\t\treturn s.check(), s.model()\n\texcept:\n\t\treturn s.check(), None\n\n\nif __name__ == '__main__':\n\tmain()".format(','.join(clauseIndList)))
 
     return 0
@@ -308,8 +296,10 @@ def buildMiter(trgtPL:str,inVars:list,keyVars:list,outVars:list,miterFile:str,mS
         miterClauses.extend(copy)
 
     # Build miter circuit - essentially a bitwise XOR operation followed by a reduction OR ("OR of XORs")
+    outSubclauses = []
     for var in outVars:
-        miterClauses.append('{0} == Not({1})'.format(var+mSuff+'1',var+mSuff+'2'))
+        outSubclauses.append('Xor({0},{1})'.format(var+mSuff+'1',var+mSuff+'2'))
+    miterClauses.append('Or({})'.format(','.join(outSubclauses)))
 
     writeZ3pl(miterClauses,miterVars,miterFile)
 
@@ -359,7 +349,7 @@ def extractVerilogModule(netlistFile:str,modName:str) -> Tuple[str,list]:
         netlistLines = f.readlines()
     startLine = 0
 
-    # Parse for top-level module - put those lines in a new
+    # Parse for top-level module
     modIO = []
     for i,line in enumerate(netlistLines):
         mtchObj1 = re.match(r'^\s*module\s+(?P<modName>\w+)\s*\((?P<portList>.*)\).*$',line,re.S)
@@ -367,13 +357,14 @@ def extractVerilogModule(netlistFile:str,modName:str) -> Tuple[str,list]:
         if mtchObj1 and (mtchObj1.group('modName') == modName):
             startLine = i
             modIO = ''.join(mtchObj1.group('portList').split()).split(',')  # Remove whitespace, convert to list using comma delimiting
-        if mtchObj2 and (i > startLine):
+        #if mtchObj2 and (i > startLine):
+        if mtchObj2 and modIO:
             break
 
     return ''.join(netlistLines[startLine:i+1]), modIO
 
 
-def buildTestbench(inputStim:list,tb:str,netlist:str,topLevelMod='top',simOutFile=tbOutputFile):
+def buildTestbench(inputStim:list,tb:str,inList:list,outList:list,topLevelMod='top',simOutFile=tbOutputFile):
     '''
     Create Verilog testbench to query netlist for a specific input set.
 
@@ -383,7 +374,8 @@ def buildTestbench(inputStim:list,tb:str,netlist:str,topLevelMod='top',simOutFil
 
     inputStim   - 
     tb          - Desired filename and path for HDL testbench to be created
-    netlist     - Filename and path for HDL module
+    inList      -
+    outList     -
     inList      - 
     outList     -
     topLevelMod -
@@ -398,7 +390,7 @@ module tb();
     wire {outList};
     integer f;
 
-    {cktName} dut({inList},{outList});
+    {cktName} dut({portDec});
 
     initial begin
         f = $fopen("{outputValueFile}","w");
@@ -412,35 +404,23 @@ module tb();
 
 endmodule'''
 
-    # Parse top-level module from netlist
-    topModLines, topModIO = extractVerilogModule(netlist,topLevelMod)
+    # Create explicit port declaration
+    expPortDec = []
+    for var in (inList + outList):
+        expPortDec.append('.{port}({port})'.format(port=var))
+    expPortDec = ','.join(expPortDec)
 
-    # Parse netlist inputs, outputs, & inouts using inList & outList
-    # Author's note 11/1/2022: I've not equipped this parsing to handle bus delimiters. Don't use delimiters in oracle netlist.
-    ins = []
-    outs = []
-    for line in topModLines.split('\n'):
-        mtchIns = re.match(r'\s*input\s+(?P<ins>.+)\W',line,re.S)
-        mtchOuts = re.match(r'\s*output\s+(?P<outs>.+)\W',line,re.S)
-        mtchInOuts = re.match(r'\s*inout\s+(?P<insOrOuts>.+)\W',line,re.S)
-        if mtchIns:
-            ins.append(''.join(mtchIns.group('ins').split()).split(','))
-        if mtchOuts:
-            outs.append(''.join(mtchOuts.group('outs').split()).split(','))
-        if mtchInOuts:
-            logging.warning('Inout I/O type detected. This script is not equipped to handle this yet.')
+    ins = ','.join(inList)
+    outs = ','.join(outList)
 
-    # Flatten input/output list of lists into a list, then convert to string (for I/O declaration)
-    ins = ','.join([item for sublist in ins for item in sublist])
-    outs = ','.join([item for sublist in outs for item in sublist])
 
     # Format input assignment (for input assignment in testbench body)
     inputAssigns = []
     for var,val in inputStim.items():
         if val:
-            inputAssigns.append("\t\t{vVar} = 1'b{bVal};\n".format(vVar=var,bVal='1'))
+            inputAssigns.append("\t\t{vVar} <= 1'b{bVal};\n".format(vVar=var,bVal='1'))
         else:
-            inputAssigns.append("\t\t{vVar} = 1'b{bVal};\n".format(vVar=var,bVal='0'))
+            inputAssigns.append("\t\t{vVar} <= 1'b{bVal};\n".format(vVar=var,bVal='0'))
 
 
     # Format output value write
@@ -454,26 +434,29 @@ endmodule'''
             inList = ins,
             outList = outs,
             cktName = topLevelMod,
+            portDec = expPortDec,
             outputValueFile = simOutFile,
             assignInValues = ''.join(inputAssigns),
             writeOutputs = ''.join(outputWrites)
             ))
 
 
-def runiVerilog(cktIn:list,trgtNetlist:str,topLevelMod:str,trgtTb=str,simOutFn=str,ivCmdFn='iv_cmd_file') -> dict:
+def runiVerilog(cktIn:list,trgtNetlist:str,topLevelMod:str,inList:list,outList:list,trgtTb=str,simOutFn=str,ivCmdFn='iv_cmd_file') -> dict:
     '''
     Call external netlist simulation software iVerilog. Returns netlist output for a single input
     pattern, using the same syntax as the CNF clauses
 
     cktIn       -
-    trgtNetlist -
+    trgtNetlist - Verilog netlist filepath to include in ivCmdFn
     topLevelMod -
+    inList      - List of input names for oracle and encrytped circuit
+    outList     - List of output names for oracle and encrytped circuit
     trgtTb      -
-    simOutFn   -   String of desired name for 
+    simOutFn    -
     ivCmdFn     -
     '''
     # Make testbench
-    buildTestbench(cktIn,trgtTb,trgtNetlist,topLevelMod=topLevelMod,simOutFile=simOutFn)
+    buildTestbench(cktIn,trgtTb,inList,outList,topLevelMod=topLevelMod,simOutFile=simOutFn)
 
     # Make IV file
     with open(ivCmdFn,'w') as f:
@@ -510,19 +493,24 @@ def runiVerilog(cktIn:list,trgtNetlist:str,topLevelMod:str,trgtTb=str,simOutFn=s
 def runPyOracle(oracleIns:dict,oracleFile:io.TextIOWrapper) -> dict:
     '''
     Run Python oracle script.
+
+    There's nothing here yet!
     '''
 
 
-def queryOracle(oracleIns:dict,oracleFile:io.TextIOWrapper,topLevelMod='',trgtTb='',simOutFile='',oracleSel=False) -> dict:
+def queryOracle(oracleIns:dict,oracleFile:io.TextIOWrapper,inList:list,outList:list,topLevelMod='',trgtTb='',simOutFile='',oracleSel=False) -> dict:
     '''
     Function for selecting desired oracle query method. Returns oracle outputs as a dict.
 
+    oracleIns   - Values for inputs to query oracle with.
+    inList      - List of oracle input names.
+    outList     - List of oracle output names. 
     topLevelMod - Name of top level mod in Verilog file. Necessary only if oracleSel = False.
     oracleSel   - If true, indicates that oracleFile is a Python file instead of a Verilog file.
     '''
     if not oracleSel and (topLevelMod != '' or trgtTb != '' or simOutFile != ''):
-        ivCmdFile = os.path.join(here,outDir) + 'iv_cmd_file'
-        oracleOut = runiVerilog(oracleIns,oracleFile,topLevelMod,trgtTb,simOutFile,ivCmdFn=ivCmdFile)
+        ivCmdFile = os.path.join(here,workDir) + 'iv_cmd_file'
+        oracleOut = runiVerilog(oracleIns,oracleFile,topLevelMod,inList,outList,trgtTb,simOutFile,ivCmdFn=ivCmdFile)
     elif not oracleSel:
         raise RuntimeError('Missing arguments for using an iVerilog oracle testbench.')
     else:
@@ -557,7 +545,7 @@ def appendMiter(copyTrgt:str,DIP:dict,oracleOut:dict,inVars:list,keyVars:list,ou
         coupleCopy.extend(copy)
 
     # Assign I/O
-    ioList = DIP | oracleOut
+    ioList = DIP | oracleOut         
     for var,val in ioList.items():
         if val == True:
             coupleCopy.append('{0}{1} == True'.format(str(var),suff))
@@ -601,22 +589,22 @@ def appendDIPCircuit(trgtPL:str,DIP:dict,oracleOut:list,inVars:list,keyVars:list
         writeZ3pl(DIPcopy,DIPcopyVars,DIPCircuitFile)
 
 
-def main():
+def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNetlist:str,topModule:str,fresh=False,pythonOracle=False,verbosity=True):
 
     # Run argument parsing, directory creation, and logging setup
-    setup()
+    setup(plLogicFile,fresh,pythonOracle,verbosity)
     startTime = datetime.datetime.now()
 
     # Read in input lists & output list (.split() will get rid of spaces, tabs, and newlines)
-    inVars = clArgs.inputList.read().split()
-    keyVars = clArgs.keyList.read().split()
-    outVars = clArgs.outputList.read().split()
-
-    # Get path for encrypted circuit
-    origCircPath = clArgs.plLogicFile.name
+    with open(inputList,'r') as f:
+        inVars = f.read().split()
+    with open(keyList,'r') as f:
+        keyVars = f.read().split()
+    with open(outputList,'r') as f:
+        outVars = f.read().split()
 
     # Create miter circuit
-    buildMiter(origCircPath,inVars,keyVars,outVars,miterFile,mSuff=miterSuffix)
+    buildMiter(plLogicFile,inVars,keyVars,outVars,miterFile,mSuff=miterSuffix)
     logging.info('Miter logic successfully created. Miter CNF located at: {}'.format(miterFile))
 
     # SAT attack loop
@@ -630,17 +618,17 @@ def main():
             logging.info('Miter circuit UNSATISFIED at iteration #{}'.format(iters))
             print('UNSAT')
             break   # If no more DIPs; we're done 
-        logging.info('Miter circuit SATISFIED at iteration #{0}. Extracted key:{1}'.format(iters,dip))
+        logging.info('Miter circuit SATISFIED at iteration #{0}. Extracted DIP:{1}'.format(iters,dip))
         print('SAT\nExtracted DIP:',*dip.items(),'\n',sep=' ')
         
         # Consult oracle
-        oracleOut = queryOracle(dip,clArgs.oracleNetlist,clArgs.topModule,trgtTb=tb,simOutFile=tbOutputFile)
+        oracleOut = queryOracle(dip,oracleNetlist,inVars,outVars,topLevelMod=topModule,trgtTb=tb,simOutFile=tbOutputFile)
         
         # Append circuit copies to the miter circuit file
-        appendMiter(origCircPath,dip,oracleOut,inVars,keyVars,outVars,miterFile,suff='_cp{}'.format(iters))
+        appendMiter(plLogicFile,dip,oracleOut,inVars,keyVars,outVars,miterFile,suff='_cp{}'.format(iters))
         
         # Append circuit copy to running "DIP circuits" CNF file with DIP and oracle output
-        appendDIPCircuit(origCircPath,dip,oracleOut,inVars,keyVars,outVars,dipCircuitsFile,suff='_cp{}'.format(iters))
+        appendDIPCircuit(plLogicFile,dip,oracleOut,inVars,keyVars,outVars,dipCircuitsFile,suff='_cp{}'.format(iters))
 
         iters += 1
 
@@ -653,15 +641,30 @@ def main():
         return -1
 
     logging.info('Key extracted successfully: {}'.format(key))
-    print('Extracted key: {}'.format(key))
+    print('Extracted key:')
     with open(extractedKeyFile,'w') as f:
-        f.write(str(key))
+        for i,j in sorted(key.items()):
+            kiPair = '{0}   :   {1}'.format(i,j)
+            f.write(kiPair)
+            print(kiPair)
 
-    # Finish up script
+    # Wrap-up
     logging.info('Script concluded. Total runtime: {} seconds'.format(datetime.datetime.now()-startTime))
-    if not clArgs.verbosity: enablePrint()
+    if not verbosity: enablePrint()
     return key
 
 
 if __name__ == '__main__':
-    main()
+    parser = argparse.ArgumentParser('A tool for running SAT attacks on an encrypted netlist written in Z3 for Python.')
+    parser.add_argument('plLogicFile',type=str,help='Path to the Python file containing propositional logic clauses to be solved. Clauses must be written in the Z3 Python format. For help, see: https://www.cs.toronto.edu/~victorn/tutorials/sat20/index.html#installation')
+    parser.add_argument('inputList',type=str,help='Path to the text file containing a list of inputs to the plLogicFile. Inputs must be separated by a space or newline character')
+    parser.add_argument('keyList',type=str,help='Path to the text file containing a list of key inputs to the plLogicFile. Keys must be separated by a space or newline character')
+    parser.add_argument('outputList',type=str,help='Path to the text file containing a list of outputs to the plLogicFile. Outputs must be separated by a space or newline character')
+    parser.add_argument('oracleNetlist',type=str,help='Name + extension of the HDL netlist file for the unencrypted, oracle black box. Input and output names must coincide with what is found in the inputList and outputList files')
+    parser.add_argument('topModule',type=str,help='Top-level module name within "oracleNetlist"')
+    parser.add_argument('-f','--fresh',action='store_true',default=False,help='Create fresh directories for SAT attack. WARNING: deletes preexisting logs and outputs')
+    parser.add_argument('-po','--pythonOracle',default=False,action='store_true',help='If true, oraclenetlist points to a Python oracle file (alternative to using iVerilog). Oracle function must be declared as "main", and all input variable names must coincide with inputList')
+    parser.add_argument('-v','--verbosity',default=False,action='store_true',help='Print progress of SAT attack to terminal')
+    clArgs=parser.parse_args()
+
+    satAttack(clArgs.plLogicFile,clArgs.inputList,clArgs.keyList,clArgs.outputList,clArgs.oracleNetlist,clArgs.topModule,clArgs.fresh,clArgs.pythonOracle,clArgs.verbosity)

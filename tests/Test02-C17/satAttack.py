@@ -1,1 +1,1 @@
-../../src/strapt/satAttack.py
+../../src/satAttack.py

@@ -6,7 +6,15 @@
 # Author:   Aric Fowler
 # Updated:  Apr 2023
 
+pip3 uninstall strapt
 
 rm -rf dist/
 
+# This line actually builds the code
 python3 -m build
+
+cd dist/
+
+pip3 install strapt-0.0.1.tar.gz
+
+cd ../
