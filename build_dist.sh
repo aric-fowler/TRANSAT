@@ -15,6 +15,6 @@ python3 -m build
 
 cd dist/
 
-pip3 install strapt-0.0.1.tar.gz
+pip3 install *.tar.gz
 
 cd ../

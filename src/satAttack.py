@@ -44,7 +44,6 @@ tb = os.path.join(here,workDir) + tbName
 extractedKeyFile = os.path.join(here,workDir) + 'extracted_key.txt'
 
 
-
 # -------------------------------------------------------------------------------------------------
 # Functions
 # -------------------------------------------------------------------------------------------------
@@ -231,10 +230,16 @@ def writeZ3pl(z3Lines:list,z3Vars:dict,z3Fn:str,append=False) -> int:
 
 
 def m2dict(model:z3.Model) -> dict:
-	'''
-	Given a Z3 Model object, convert all variables and their interpreted values to a Python dict.
-	'''
-	return {str(d):bool(model[d]) for d in model}
+    '''
+    Given a Z3 Model object, convert all variables and their interpreted values to a Python dict.
+    '''
+    z3Dict = {}
+    for d in model:
+        try:
+            z3Dict[str(d)] = bool(model[d])
+        except:
+            z3Dict[str(d)] = model[d].as_long()
+    return z3Dict
 
 
 def copyCircuit(plClauses:list,allVars:dict,inList:list,keyList:list,outList:list,suffix='',modIns=True,modKeys=True,modOuts=True,modNets=True) -> Tuple[dict,list]:
@@ -323,9 +328,9 @@ def runSAT(trgtZ3:str,voi=[]) -> Tuple[bool,list]:
     # Run trgtZ3
     decision, model = sys.modules[trgtZ3].main()
 
+    # Extract Z3 result
     if re.match(r'\bsat\b',str(decision)):
         satisfied = True
-        voi_vals = []
         modelVals = m2dict(model)
         if voi != []:
             voiVals = {k: modelVals[k] for k in set(voi).intersection(modelVals.keys())}
@@ -519,7 +524,7 @@ def queryOracle(oracleIns:dict,oracleFile:io.TextIOWrapper,inList:list,outList:l
     return oracleOut
 
 
-def appendMiter(copyTrgt:str,DIP:dict,oracleOut:dict,inVars:list,keyVars:list,outVars:list,miterFile:str,suff:str):
+def appendMiter(copyTrgt:str,DIP:dict,oracleOut:dict,inVars:list,keyVars:list,outVars:list,miterFile:str,suff:str,ts=False):
     '''
     Append circuit copies to a preexisting miter circuit to prevent a SAT solver from solving for the same DIP over and over.
 
@@ -529,8 +534,14 @@ def appendMiter(copyTrgt:str,DIP:dict,oracleOut:dict,inVars:list,keyVars:list,ou
     inList      - Path to file containing list of variables designated as inputs in CNF, separated by lines or spaces
     keyList     - Path to file containing list of variables designated as key inputs in CNF, separated by lines or spaces
     outList     - Path to file containing list of variables designated as outputs in CNF, separated by lines or spaces
-    miterFile   - Path to file to append circuit copy to
+    miterFile   - Path to miter file to append circuit copy to
+    suff        - Suffix appended to the end of variables to differentiate them from past entries in the miter file
+    ts          - Troubleshoot mode: the previous miter circuit will be saved as a new file before modifying it, using
+                    provided "suff" variable
     '''
+    if ts:
+        shutil.copy(miterFile,workDir+'miter'+suff+'.py')
+
     # Read in PL
     plVars,plClauses = readZ3pl(copyTrgt)
     
@@ -589,11 +600,11 @@ def appendDIPCircuit(trgtPL:str,DIP:dict,oracleOut:list,inVars:list,keyVars:list
         writeZ3pl(DIPcopy,DIPcopyVars,DIPCircuitFile)
 
 
-def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNetlist:str,topModule:str,fresh=False,pythonOracle=False,verbosity=True):
+def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNetlist:str,topModule:str,fresh=False,pythonOracle=False,troubleshoot=False,verbosity=True):
 
     # Run argument parsing, directory creation, and logging setup
-    setup(plLogicFile,fresh,pythonOracle,verbosity)
     startTime = datetime.datetime.now()
+    setup(plLogicFile,fresh,pythonOracle,verbosity)
 
     # Read in input lists & output list (.split() will get rid of spaces, tabs, and newlines)
     with open(inputList,'r') as f:
@@ -617,6 +628,9 @@ def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNet
         if not sat:
             logging.info('Miter circuit UNSATISFIED at iteration #{}'.format(iters))
             print('UNSAT')
+            if iters == 1:
+                logging.error('The provided encrytped logic file is unsatisfiable within itself. Please review and fix {}'.format(plLogicFile))
+                raise RuntimeError('Base circuit unsatisfiable. See log for details.')
             break   # If no more DIPs; we're done 
         logging.info('Miter circuit SATISFIED at iteration #{0}. Extracted DIP:{1}'.format(iters,dip))
         print('SAT\nExtracted DIP:',*dip.items(),'\n',sep=' ')
@@ -625,7 +639,7 @@ def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNet
         oracleOut = queryOracle(dip,oracleNetlist,inVars,outVars,topLevelMod=topModule,trgtTb=tb,simOutFile=tbOutputFile)
         
         # Append circuit copies to the miter circuit file
-        appendMiter(plLogicFile,dip,oracleOut,inVars,keyVars,outVars,miterFile,suff='_cp{}'.format(iters))
+        appendMiter(plLogicFile,dip,oracleOut,inVars,keyVars,outVars,miterFile,suff='_cp{}'.format(iters),ts=troubleshoot)
         
         # Append circuit copy to running "DIP circuits" CNF file with DIP and oracle output
         appendDIPCircuit(plLogicFile,dip,oracleOut,inVars,keyVars,outVars,dipCircuitsFile,suff='_cp{}'.format(iters))
@@ -645,7 +659,7 @@ def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNet
     with open(extractedKeyFile,'w') as f:
         for i,j in sorted(key.items()):
             kiPair = '{0}   :   {1}'.format(i,j)
-            f.write(kiPair)
+            f.write(kiPair+'\n')
             print(kiPair)
 
     # Wrap-up
@@ -662,9 +676,10 @@ if __name__ == '__main__':
     parser.add_argument('outputList',type=str,help='Path to the text file containing a list of outputs to the plLogicFile. Outputs must be separated by a space or newline character')
     parser.add_argument('oracleNetlist',type=str,help='Name + extension of the HDL netlist file for the unencrypted, oracle black box. Input and output names must coincide with what is found in the inputList and outputList files')
     parser.add_argument('topModule',type=str,help='Top-level module name within "oracleNetlist"')
-    parser.add_argument('-f','--fresh',action='store_true',default=False,help='Create fresh directories for SAT attack. WARNING: deletes preexisting logs and outputs')
+    parser.add_argument('-f','--fresh',default=False,action='store_true',help='Create fresh directories for SAT attack. WARNING: deletes preexisting logs and outputs')
     parser.add_argument('-po','--pythonOracle',default=False,action='store_true',help='If true, oraclenetlist points to a Python oracle file (alternative to using iVerilog). Oracle function must be declared as "main", and all input variable names must coincide with inputList')
+    parser.add_argument('-t','--troubleshoot',default=False,action='store_true',help='Creates intermediate scripts for the purposes of troubleshooting when an attack goes awry.')
     parser.add_argument('-v','--verbosity',default=False,action='store_true',help='Print progress of SAT attack to terminal')
     clArgs=parser.parse_args()
 
-    satAttack(clArgs.plLogicFile,clArgs.inputList,clArgs.keyList,clArgs.outputList,clArgs.oracleNetlist,clArgs.topModule,clArgs.fresh,clArgs.pythonOracle,clArgs.verbosity)
+    satAttack(clArgs.plLogicFile,clArgs.inputList,clArgs.keyList,clArgs.outputList,clArgs.oracleNetlist,clArgs.topModule,clArgs.fresh,clArgs.pythonOracle,clArgs.troubleshoot,clArgs.verbosity)

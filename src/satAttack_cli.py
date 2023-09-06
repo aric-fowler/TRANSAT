@@ -18,10 +18,12 @@ def main():
     parser.add_argument('topModule',type=str,help='Top-level module name within "oracleNetlist"')
     parser.add_argument('-f','--fresh',action='store_true',default=False,help='Create fresh directories for SAT attack. WARNING: deletes preexisting logs and outputs')
     parser.add_argument('-po','--pythonOracle',default=False,action='store_true',help='If true, oraclenetlist points to a Python oracle file (alternative to using iVerilog). Oracle function must be declared as "main", and all input variable names must coincide with inputList')
+    parser.add_argument('-t','--troubleshoot',default=False,action='store_true',help='Creates intermediate scripts for the purposes of troubleshooting when an attack goes awry.')
+
     parser.add_argument('-v','--verbosity',default=False,action='store_true',help='Print progress of SAT attack to terminal')
     clArgs=parser.parse_args()
 
-    satAttack(clArgs.plLogicFile,clArgs.inputList,clArgs.keyList,clArgs.outputList,clArgs.oracleNetlist,clArgs.topModule,clArgs.fresh,clArgs.pythonOracle,clArgs.verbosity)
+    satAttack(clArgs.plLogicFile,clArgs.inputList,clArgs.keyList,clArgs.outputList,clArgs.oracleNetlist,clArgs.topModule,clArgs.fresh,clArgs.pythonOracle,clArgs.troubleshoot,clArgs.verbosity)
 
 
 
