@@ -230,7 +230,7 @@ def writeZ3pl(z3Vars:dict,z3Lines:list,z3Fn:str,append=False,prnt=False) -> int:
         if not prnt:
             f.write("\n\ts = Solver()\n\ts.add({})\n\ttry:\n\t\treturn s.check(), s.model()\n\texcept:\n\t\treturn s.check(), None\n\n\nif __name__ == '__main__':\n\tmain()".format(','.join(clauseIndList)))
         else:
-            f.write("\n\ts = Solver()\n\ts.add({})\n\ttry:\n\t\tprint(s.check(),s.model())\n\texcept:\n\t\tpirnt(s.check())\n\n\nif __name__ == '__main__':\n\tmain()".format(','.join(clauseIndList)))
+            f.write("\n\ts = Solver()\n\ts.add({})\n\ttry:\n\t\tprint(s.check(),s.model())\n\texcept:\n\t\tprint(s.check())\n\n\nif __name__ == '__main__':\n\tmain()".format(','.join(clauseIndList)))
  
 
     return 0
@@ -546,12 +546,13 @@ def appendMiter(copyTrgt:str,DIP:dict,oracleOut:dict,inVars:list,keyVars:list,ou
     ts          - Troubleshoot mode: the previous miter circuit will be saved as a new file before modifying it, using
                     provided "suff" variable
     '''
-    # Read in PL
-    plVars,plClauses = readZ3pl(copyTrgt)
-
     # Copy old miter circuit to new file if in troubleshoot mode
     if ts:
-        writeZ3pl(plVars,plClauses,workDir+'miter'+suff+'.py',prnt=True)
+        oldVars,oldClauses = readZ3pl(miterFile)
+        writeZ3pl(oldVars,oldClauses,workDir+miterName+suff+'.py',prnt=True)
+
+    # Read in template PL
+    plVars,plClauses = readZ3pl(copyTrgt)
     
     # Make circuit copy pair
     coupleVars = {}
