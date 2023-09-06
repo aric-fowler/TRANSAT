@@ -198,12 +198,15 @@ def readZ3pl(trgtZ3:str) -> Tuple[dict,list]:
     return varDict,funList
 
 
-def writeZ3pl(z3Lines:list,z3Vars:dict,z3Fn:str,append=False) -> int:
+def writeZ3pl(z3Vars:dict,z3Lines:list,z3Fn:str,append=False,prnt=False) -> int:
     '''
     Writes or appends a Python Z3 script from a provided list of lines. If append is true, then
     writeZ3pl will read z3fileName and rewrite it, adding in additional clauses from z3Lines. 
     Assumes that the Python variable names and the PL variable names are identical. Returns 0 
     on success.
+
+    prnt    -   If enabled, the written Z3 file will print its results to terminal, rather than
+                return the result to the Python shell.
     '''
     varList = {}
     clauseList = []
@@ -224,7 +227,11 @@ def writeZ3pl(z3Lines:list,z3Vars:dict,z3Fn:str,append=False) -> int:
         for i,line in enumerate(clauseList):
             clauseIndList.append('c{}'.format(i))
             f.write('\t{0} = {1}\n'.format(clauseIndList[i],line))
-        f.write("\n\ts = Solver()\n\ts.add({})\n\ttry:\n\t\treturn s.check(), s.model()\n\texcept:\n\t\treturn s.check(), None\n\n\nif __name__ == '__main__':\n\tmain()".format(','.join(clauseIndList)))
+        if not prnt:
+            f.write("\n\ts = Solver()\n\ts.add({})\n\ttry:\n\t\treturn s.check(), s.model()\n\texcept:\n\t\treturn s.check(), None\n\n\nif __name__ == '__main__':\n\tmain()".format(','.join(clauseIndList)))
+        else:
+            f.write("\n\ts = Solver()\n\ts.add({})\n\ttry:\n\t\tprint(s.check(),s.model())\n\texcept:\n\t\tpirnt(s.check())\n\n\nif __name__ == '__main__':\n\tmain()".format(','.join(clauseIndList)))
+ 
 
     return 0
 
@@ -306,7 +313,7 @@ def buildMiter(trgtPL:str,inVars:list,keyVars:list,outVars:list,miterFile:str,mS
         outSubclauses.append('Xor({0},{1})'.format(var+mSuff+'1',var+mSuff+'2'))
     miterClauses.append('Or({})'.format(','.join(outSubclauses)))
 
-    writeZ3pl(miterClauses,miterVars,miterFile)
+    writeZ3pl(miterVars,miterClauses,miterFile)
 
 
 def runSAT(trgtZ3:str,voi=[]) -> Tuple[bool,list]:
@@ -539,11 +546,12 @@ def appendMiter(copyTrgt:str,DIP:dict,oracleOut:dict,inVars:list,keyVars:list,ou
     ts          - Troubleshoot mode: the previous miter circuit will be saved as a new file before modifying it, using
                     provided "suff" variable
     '''
-    if ts:
-        shutil.copy(miterFile,workDir+'miter'+suff+'.py')
-
     # Read in PL
     plVars,plClauses = readZ3pl(copyTrgt)
+
+    # Copy old miter circuit to new file if in troubleshoot mode
+    if ts:
+        writeZ3pl(plVars,plClauses,workDir+'miter'+suff+'.py',prnt=True)
     
     # Make circuit copy pair
     coupleVars = {}
@@ -566,7 +574,7 @@ def appendMiter(copyTrgt:str,DIP:dict,oracleOut:dict,inVars:list,keyVars:list,ou
             logging.error('Error encountered when appending constant I/O definition clauses to miter circuit')
             raise RuntimeError('Error encountered when appending constant I/O definition clauses to miter circuit')
         
-    writeZ3pl(coupleCopy,coupleVars,miterFile,append=True)
+    writeZ3pl(coupleVars,coupleCopy,miterFile,append=True)
 
 
 def appendDIPCircuit(trgtPL:str,DIP:dict,oracleOut:list,inVars:list,keyVars:list,outVars:list,DIPCircuitFile:str,suff:str):
@@ -595,9 +603,9 @@ def appendDIPCircuit(trgtPL:str,DIP:dict,oracleOut:list,inVars:list,keyVars:list
 
     # Append circuit to file
     if os.path.exists(DIPCircuitFile):
-        writeZ3pl(DIPcopy,DIPcopyVars,DIPCircuitFile,append=True)
+        writeZ3pl(DIPcopyVars,DIPcopy,DIPCircuitFile,append=True)
     else:
-        writeZ3pl(DIPcopy,DIPcopyVars,DIPCircuitFile)
+        writeZ3pl(DIPcopyVars,DIPcopy,DIPCircuitFile)
 
 
 def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNetlist:str,topModule:str,fresh=False,pythonOracle=False,troubleshoot=False,verbosity=True):
