@@ -15,11 +15,19 @@ pip3 install strapt
 ```
 
 ## Usage
+
+### Command line:
+```bash
+# SAT attack:
+satAttack plLogicFile inputList keyList outputList oracleNetlist oracleName
+```
+
+### Within Python:
 ```python
-import strapt
+# SAT attack:
+from strapt import satAttack
 
-# Run a SAT attack
-
+satAttack(plLogicFile,inputList,keyList,outputList,oracleNetlist,oracleName)
 ```
 
 ## License
