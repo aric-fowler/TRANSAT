@@ -14,7 +14,7 @@ with open('README.md','r',encoding='utf-8') as fhand:
 
 setuptools.setup(
     name='strapt',
-    version='0.0.1',
+    version='0.0.3',
     author='Aric Fowler',
     author_email='aric.fowler@utdallas.edu',
     description='STRAPT is a set of SAT tools for solving the University of Texas - Dallas TRAP circuit technology, built around the Microsoft Z3 SMT solver.',
