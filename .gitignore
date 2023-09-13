@@ -2,3 +2,4 @@ tests/
 src/strapt/__pycache__/
 *.egg-info/
 build_dist.sh
+.vscode/

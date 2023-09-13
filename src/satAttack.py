@@ -37,6 +37,7 @@ now = datetime.datetime.now().strftime(logDateFormat)
 
 workDir = 'work' + '/'
 logDir = 'log' + '/'
+debugDir = 'debug' + '/'
 
 miterFile = os.path.join(here,workDir) + miterName + '.py'
 dipCircuitsFile = os.path.join(here,workDir) + dipCircuitsName + '.py'
@@ -57,7 +58,7 @@ def enablePrint():
     sys.stdout = sys.__stdout__
 
 
-def initDirs(outDir:str,logDir:str,outDirName='',freshDirs=False):
+def initDirs(outDir:str,logDir:str,outDirName='',freshDirs=False,debug=False):
     '''
     Initialize output and log directories. Relies on information stored in satAttackConfig (cfg) Python file
 
@@ -66,8 +67,6 @@ def initDirs(outDir:str,logDir:str,outDirName='',freshDirs=False):
     outDirName  - String. Output directory name without any dates or anything that may be added on
                     to make it unique. If not set, it will be set to to outDir
     '''
-    if outDirName == '':
-        outDirName = outDirName
     try:
         if freshDirs:
             # For loop removes any old output directories
@@ -76,13 +75,19 @@ def initDirs(outDir:str,logDir:str,outDirName='',freshDirs=False):
                     continue
                 shutil.rmtree(item)
             shutil.rmtree(logDir)
+            shutil.rmtree(debugDir)
         os.makedirs(outDir)
         os.makedirs(logDir)
+        if debug:
+            os.makedirs(debugDir)
+
     except:
         if not os.path.exists(outDir):
             os.makedirs(outDir)
         if not os.path.exists(logDir):
             os.makedirs(logDir)
+        if (not os.path.exists(debugDir)) and debug:
+            os.makedirs(debugDir)
 
 
 def readLastLine(file:str) -> str:
@@ -125,23 +130,23 @@ def editLastLine(file:str,newLine:str):
         f.write(str.encode(newLine))
 
 
-def setup(plLogicFile,fresh,pythonOracle,verbosity):
+def setup(plLogicFile,fresh,pythonOracle,verbosity,debug):
     '''
     Parses input arguments, creates output and log directories, sets up logging, and elevates select
     variables to global scope.
     '''
     if not verbosity: blockPrint()
-    print('Executing {}'.format(os.path.basename(__file__)))
+    print(f'Executing {os.path.basename(__file__)}')
 
     # Setup logging & output directories
-    initDirs(workDir,logDir,freshDirs=fresh)
+    initDirs(workDir,logDir,freshDirs=fresh,debug=debug)
     logging.basicConfig(
-        filename= os.path.join(here,logDir) + now + '.log',
+        filename= os.path.join(here,logDir)+now+'.log',
         format=logFormat,
         datefmt=logDateFormat,
         level=logging.DEBUG)
-    logging.info('SAT attack script called at: {}'.format(datetime.date.today()))
-    logging.info('Target PL file: {}'.format(plLogicFile))
+    logging.info(f'SAT attack script called at: {datetime.date.today()}')
+    logging.info(f'Target PL file: {plLogicFile}')
     logging.info('Output directories created.')
 
     sys.path.append(workDir)
@@ -181,8 +186,8 @@ def readZ3pl(trgtZ3:str) -> Tuple[dict,list]:
         mtchObj = re.match(r'^\s*(?P<varID>\w+)\s*=\s*(?P<varType>[a-zA-Z]+)\([\',"](?P<varName>\w+)[\',"]\).*$',line)
         if mtchObj:
             if (mtchObj.group('varID') != mtchObj.group('varName')):
-                logging.error('Variable {name} is given a different identifier ("{id}") in the source Z3 Python script "{f}". Change this so they are identical.'.format(name=mtchObj.group('varName'),id=mtchObj.group('varID'),f=trgtZ3))
-                raise RuntimeError('Variable mismatch name in "{}". See log file for details.'.format(trgtZ3))
+                logging.error(f'Variable {mtchObj.group("varName")} is given a different identifier ("{mtchObj.group("varID")}") in the source Z3 Python script "{trgtZ3}". Change this so they are identical.')
+                raise RuntimeError(f'Variable mismatch name in "{trgtZ3}". See log file for details.')
             else:
                 varDict[mtchObj.group('varID')] = mtchObj.group('varType')
 
@@ -205,7 +210,7 @@ def writeZ3pl(z3Vars:dict,z3Lines:list,z3Fn:str,append=False,prnt=False) -> int:
     Assumes that the Python variable names and the PL variable names are identical. Returns 0 
     on success.
 
-    prnt    -   If enabled, the written Z3 file will print its results to terminal, rather than
+    prnt    -   If enabled, the written Z3 file will print its results to a text file, rather than
                 return the result to the Python shell.
     '''
     varList = {}
@@ -222,15 +227,15 @@ def writeZ3pl(z3Vars:dict,z3Lines:list,z3Fn:str,append=False,prnt=False) -> int:
     with open(z3Fn,'w') as f:
         f.write('from z3 import *\n\n\ndef main():\n')
         for var,varType in varList.items():
-            f.write("\t{n} = {t}('{n}')\n".format(n=var,t=varType))
+            f.write(f"\t{var} = {varType}('{var}')\n")
         f.write('\n')
         for i,line in enumerate(clauseList):
             clauseIndList.append('c{}'.format(i))
-            f.write('\t{0} = {1}\n'.format(clauseIndList[i],line))
+            f.write(f'\t{clauseIndList[i]} = {line}\n')
         if not prnt:
-            f.write("\n\ts = Solver()\n\ts.add({})\n\ttry:\n\t\treturn s.check(), s.model()\n\texcept:\n\t\treturn s.check(), None\n\n\nif __name__ == '__main__':\n\tmain()".format(','.join(clauseIndList)))
+            f.write(f"\n\ts = Solver()\n\ts.add({','.join(clauseIndList)})\n\ttry:\n\t\treturn s.check(), s.model()\n\texcept:\n\t\treturn s.check(), None\n\n\nif __name__ == '__main__':\n\tmain()")
         else:
-            f.write("\n\ts = Solver()\n\ts.add({})\n\ttry:\n\t\tprint(s.check(),s.model())\n\texcept:\n\t\tprint(s.check())\n\n\nif __name__ == '__main__':\n\tmain()".format(','.join(clauseIndList)))
+            f.write(f"\n\ts = Solver()\n\ts.add({','.join(clauseIndList)})\n\twith open('{z3Fn}.txt','w') as f:\n\t\tf.write(str(s.check())+'\\n\\n')\n\t\ttry:\n\t\t\tm = s.model()\n\t\t\tfor item in sorted([(d, m[d]) for d in m], key = lambda x: str(x[0])):\n\t\t\t\tf.write(str(item)+'\\n')\n\t\texcept:\n\t\t\tNone\n\n\nif __name__ == '__main__':\n\tmain()")
  
 
     return 0
@@ -284,16 +289,17 @@ def copyCircuit(plClauses:list,allVars:dict,inList:list,keyList:list,outList:lis
     return clauses,clauseVars
 
 
-def buildMiter(trgtPL:str,inVars:list,keyVars:list,outVars:list,miterFile:str,mSuff='_m'):
+def buildMiter(trgtPL:str,inVars:list,keyVars:list,outVars:list,miterFile:str,mSuff='_m',hiZVars=None):
     '''
     Create miter circuit for a given input CNF file. Returns a list of input variable names and a list key variable names for convenience.
 
     targetPL    - Path to Z3 Python file containing PL clauses to create a miter circuit out of
-    inVars      - List of variables designated as inputs in targetPL, separated by lines or spaces
-    keyVars     - List of variables designated as key inputs in targetPL, separated by lines or spaces
-    outVars     - List of variables designated as outputs in targetPL, separated by lines or spaces
+    inVars      - List of variables designated as inputs in targetPL
+    keyVars     - List of variables designated as key inputs in targetPL
+    outVars     - List of variables designated as outputs in targetPL
     miterFile   - Desired path, filename, and extension for output Z3 file
     mSuff       - Desired suffix to be added to net names for each miter circuit (do not include copy number)
+    hiZVars     - List of variables designates as outputs in targetPL
     '''
     # Read in PL
     plVars,plClauses = readZ3pl(trgtPL)
@@ -308,10 +314,12 @@ def buildMiter(trgtPL:str,inVars:list,keyVars:list,outVars:list,miterFile:str,mS
         miterClauses.extend(copy)
 
     # Build miter circuit - essentially a bitwise XOR operation followed by a reduction OR ("OR of XORs")
+    if hiZVars != None:
+        outVars = outVars + hiZVars
     outSubclauses = []
     for var in outVars:
-        outSubclauses.append('Xor({0},{1})'.format(var+mSuff+'1',var+mSuff+'2'))
-    miterClauses.append('Or({})'.format(','.join(outSubclauses)))
+        outSubclauses.append(f'Xor({var+mSuff+"1"},{var+mSuff+"2"})')
+    miterClauses.append(f'Or({",".join(outSubclauses)})     # Miter circuit')
 
     writeZ3pl(miterVars,miterClauses,miterFile)
 
@@ -393,34 +401,11 @@ def buildTestbench(inputStim:list,tb:str,inList:list,outList:list,topLevelMod='t
     topLevelMod -
     '''
 
-    tbTemplate = '''// Testbench for iVerilog oracle. Automatically generated by Aric Fowler's SAT attack script.
-
-`timescale 10ms/1ms
-
-module tb();
-    reg {inList};
-    wire {outList};
-    integer f;
-
-    {cktName} dut({portDec});
-
-    initial begin
-        f = $fopen("{outputValueFile}","w");
-        #1
-        // Input assignment - DIP
-{assignInValues}
-        #1
-{writeOutputs}
-        $fclose(f);
-    end
-
-endmodule'''
-
     # Create explicit port declaration
-    expPortDec = []
+    portDec = []
     for var in (inList + outList):
-        expPortDec.append('.{port}({port})'.format(port=var))
-    expPortDec = ','.join(expPortDec)
+        portDec.append(f'.{var}({var})')
+    portDec = ','.join(portDec)
 
     ins = ','.join(inList)
     outs = ','.join(outList)
@@ -430,27 +415,41 @@ endmodule'''
     inputAssigns = []
     for var,val in inputStim.items():
         if val:
-            inputAssigns.append("\t\t{vVar} <= 1'b{bVal};\n".format(vVar=var,bVal='1'))
+            inputAssigns.append(f"\t\t{var} <= 1'b1;\n")
         else:
-            inputAssigns.append("\t\t{vVar} <= 1'b{bVal};\n".format(vVar=var,bVal='0'))
+            inputAssigns.append(f"\t\t{var} <= 1'b0;\n")
 
 
     # Format output value write
     outputWrites = []
     for var in outs.replace(' ','').split(','):
-        outputWrites.append('\t\t$fwrite(f,"{var} : %b\\n",{var});\n'.format(var=var))
+        outputWrites.append(f'\t\t$fwrite(f,"{var} : %b\\n",{var});\n')
         
     # Write the testbench file
+    tbTemplate = f'''// Testbench for iVerilog oracle. Automatically generated by Aric Fowler's SAT attack script.
+`timescale 10ms/1ms
+
+module tb();
+    reg {ins};
+    wire {outs};
+    integer f;
+
+    {topLevelMod} dut({portDec});
+
+    initial begin
+        f = $fopen("{simOutFile}","w");
+        #1
+        // Input assignment - DIP
+{''.join(inputAssigns)}
+        #1
+{''.join(outputWrites)}
+        $fclose(f);
+    end
+
+endmodule'''
+
     with open(tb,'w') as f:
-        f.write(tbTemplate.format(
-            inList = ins,
-            outList = outs,
-            cktName = topLevelMod,
-            portDec = expPortDec,
-            outputValueFile = simOutFile,
-            assignInValues = ''.join(inputAssigns),
-            writeOutputs = ''.join(outputWrites)
-            ))
+        f.write(tbTemplate)
 
 
 def runiVerilog(cktIn:list,trgtNetlist:str,topLevelMod:str,inList:list,outList:list,trgtTb=str,simOutFn=str,ivCmdFn='iv_cmd_file') -> dict:
@@ -476,7 +475,7 @@ def runiVerilog(cktIn:list,trgtNetlist:str,topLevelMod:str,inList:list,outList:l
         f.write(trgtTb+'\n')
 
     # Run simulator
-    os.system('iverilog -c {}'.format(ivCmdFn))
+    os.system(f'iverilog -c {ivCmdFn}')
     os.system('./a.out')
 
     # Parse generated output
@@ -491,7 +490,7 @@ def runiVerilog(cktIn:list,trgtNetlist:str,topLevelMod:str,inList:list,outList:l
             else:
                 cktOut[mtchObj.group('outName')] = True
         except:
-            logging.error('Unable to properly parse iVerilog simulation output file "{}"'.format(simOutFn))
+            logging.error(f'Unable to properly parse iVerilog simulation output file "{simOutFn}"')
 
     # Delete extraneous files: a.out, iv file, testbench, simOut text file
     os.remove('a.out')
@@ -531,7 +530,7 @@ def queryOracle(oracleIns:dict,oracleFile:io.TextIOWrapper,inList:list,outList:l
     return oracleOut
 
 
-def appendMiter(copyTrgt:str,DIP:dict,oracleOut:dict,inVars:list,keyVars:list,outVars:list,miterFile:str,suff:str,ts=False):
+def appendMiter(copyTrgt:str,DIP:dict,oracleOut:dict,inVars:list,keyVars:list,outVars:list,miterFile:str,suff:str,debug=False,hiZVars=None):
     '''
     Append circuit copies to a preexisting miter circuit to prevent a SAT solver from solving for the same DIP over and over.
 
@@ -543,13 +542,13 @@ def appendMiter(copyTrgt:str,DIP:dict,oracleOut:dict,inVars:list,keyVars:list,ou
     outList     - Path to file containing list of variables designated as outputs in CNF, separated by lines or spaces
     miterFile   - Path to miter file to append circuit copy to
     suff        - Suffix appended to the end of variables to differentiate them from past entries in the miter file
-    ts          - Troubleshoot mode: the previous miter circuit will be saved as a new file before modifying it, using
+    debug       - Debug mode: the previous miter circuit will be saved as a new file before modifying it, using
                     provided "suff" variable
     '''
     # Copy old miter circuit to new file if in troubleshoot mode
-    if ts:
+    if debug:
         oldVars,oldClauses = readZ3pl(miterFile)
-        writeZ3pl(oldVars,oldClauses,workDir+miterName+suff+'.py',prnt=True)
+        writeZ3pl(oldVars,oldClauses,debugDir+miterName+suff+'.py',prnt=True)
 
     # Read in template PL
     plVars,plClauses = readZ3pl(copyTrgt)
@@ -558,27 +557,36 @@ def appendMiter(copyTrgt:str,DIP:dict,oracleOut:dict,inVars:list,keyVars:list,ou
     coupleVars = {}
     coupleCopy = []
     for i in range(1,3):
-        copy,copyVars = copyCircuit(plClauses,plVars,inVars,keyVars,outVars,suffix=suff+'_{}'.format(i),modIns=False,modKeys=False,modOuts=False)   # Nets are copy-unique
-        copy,copyVars = copyCircuit(copy,copyVars,inVars,keyVars,outVars,suffix=suff,modKeys=False,modNets=False)                                   # Inputs & outputs are identical
-        copy,copyVars = copyCircuit(copy,copyVars,inVars,keyVars,outVars,suffix='_'+str(i),modIns=False,modNets=False,modOuts=False)                # Consistent keys
+        copy,copyVars = copyCircuit(plClauses,plVars,inVars,keyVars,outVars,suffix=f'{suff}_{i}',modIns=False,modKeys=False,modOuts=False)   # Nets are copy-unique
+        copy,copyVars = copyCircuit(copy,copyVars,inVars,keyVars,outVars,suffix=suff,modKeys=False,modNets=False)                            # Inputs & outputs are identical
+        copy,copyVars = copyCircuit(copy,copyVars,inVars,keyVars,outVars,suffix=f'_{i}',modIns=False,modNets=False,modOuts=False)      # Consistent keys
         coupleVars = coupleVars | {k:v for k,v in copyVars.items() if k not in coupleCopy}
         coupleCopy.extend(copy)
 
-    # Assign I/O
-    ioList = DIP | oracleOut         
+    # Assign I/O from oracle query
+    ioList = DIP | oracleOut
     for var,val in ioList.items():
         if val == True:
-            coupleCopy.append('{0}{1} == True'.format(str(var),suff))
+            coupleCopy.append(f'{var}{suff} == True')
         elif val == False:
-            coupleCopy.append('{0}{1} == False'.format(str(var),suff))
+            coupleCopy.append(f'{var}{suff} == False')
         else:
             logging.error('Error encountered when appending constant I/O definition clauses to miter circuit')
             raise RuntimeError('Error encountered when appending constant I/O definition clauses to miter circuit')
         
+    # Assign hiZ variables if applicable - they are tied to True, since oracle outputs should always be electrically driven
+    # NOTE: what if the oracle CAN exhibit a high-impedance output? Then this will need to be either changed such that the 
+    # hiZ variables are assigned to the oracle's outputs... or hiZ flag should not be used at all and hiZ variables should be 
+    # included in the outputs list
+    if hiZVars != None: 
+        for var in hiZVars:
+            coupleCopy.append(f'{var}{suff}_1 == True')
+            coupleCopy.append(f'{var}{suff}_2 == True')
+
     writeZ3pl(coupleVars,coupleCopy,miterFile,append=True)
 
 
-def appendDIPCircuit(trgtPL:str,DIP:dict,oracleOut:list,inVars:list,keyVars:list,outVars:list,DIPCircuitFile:str,suff:str):
+def appendDIPCircuit(trgtPL:str,DIP:dict,oracleOut:list,inVars:list,keyVars:list,outVars:list,DIPCircuitFile:str,suff:str,tsVars=None):
     '''
     Append a circuit copy with specific I/O to a running file to be solved when all DIPs have been found. If the 
     file does not exist, it is created.
@@ -598,9 +606,12 @@ def appendDIPCircuit(trgtPL:str,DIP:dict,oracleOut:list,inVars:list,keyVars:list
     ioList = DIP | oracleOut
     for var,val in ioList.items():
         if val == True:
-            DIPcopy.append('{0}{1} == True'.format(str(var),suff))
+            DIPcopy.append(f'{var}{suff} == True')
         elif val == False:
-            DIPcopy.append('{0}{1} == False'.format(str(var),suff))
+            DIPcopy.append(f'{var}{suff} == False')
+    if tsVars != None:  # NOTE: these lines need to be changed if hiZ is an expected output from the oracle
+        for var in tsVars:
+            DIPcopy.append(f'{var}{suff} == True')
 
     # Append circuit to file
     if os.path.exists(DIPCircuitFile):
@@ -609,11 +620,11 @@ def appendDIPCircuit(trgtPL:str,DIP:dict,oracleOut:list,inVars:list,keyVars:list
         writeZ3pl(DIPcopyVars,DIPcopy,DIPCircuitFile)
 
 
-def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNetlist:str,topModule:str,fresh=False,pythonOracle=False,troubleshoot=False,verbosity=True):
+def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNetlist:str,topModule:str,fresh=False,pythonOracle=False,debug=False,verbose=True,highImpedance=None):
 
     # Run argument parsing, directory creation, and logging setup
     startTime = datetime.datetime.now()
-    setup(plLogicFile,fresh,pythonOracle,verbosity)
+    setup(plLogicFile,fresh,pythonOracle,verbose,debug)
 
     # Read in input lists & output list (.split() will get rid of spaces, tabs, and newlines)
     with open(inputList,'r') as f:
@@ -622,36 +633,41 @@ def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNet
         keyVars = f.read().split()
     with open(outputList,'r') as f:
         outVars = f.read().split()
+    if highImpedance is not None:
+        with open(highImpedance,'r') as f:
+            hiZVars = f.read().split()
+    else:
+        hiZVars = None
 
     # Create miter circuit
-    buildMiter(plLogicFile,inVars,keyVars,outVars,miterFile,mSuff=miterSuffix)
-    logging.info('Miter logic successfully created. Miter CNF located at: {}'.format(miterFile))
+    buildMiter(plLogicFile,inVars,keyVars,outVars,miterFile,mSuff=miterSuffix,hiZVars=hiZVars)
+    logging.info(f'Miter logic successfully created. Miter CNF located at: {miterFile}')
 
     # SAT attack loop
     iters = 1
     while(True):
         
         # Run SAT on miter & extract DIP if SAT
-        print('\nRunning SAT on Miter clauses, iteration #{}'.format(iters))
+        print(f'\nRunning SAT on Miter clauses, iteration #{iters}')
         sat,dip = runSAT(miterName,inVars)
         if not sat:
-            logging.info('Miter circuit UNSATISFIED at iteration #{}'.format(iters))
+            logging.info(f'Miter circuit UNSATISFIED at iteration #{iters}')
             print('UNSAT')
             if iters == 1:
-                logging.error('The provided encrytped logic file is unsatisfiable within itself. Please review and fix {}'.format(plLogicFile))
+                logging.error(f'The provided encrytped logic file is unsatisfiable within itself. Please review and fix {plLogicFile}')
                 raise RuntimeError('Base circuit unsatisfiable. See log for details.')
             break   # If no more DIPs; we're done 
-        logging.info('Miter circuit SATISFIED at iteration #{0}. Extracted DIP:{1}'.format(iters,dip))
+        logging.info(f'Miter circuit SATISFIED at iteration #{iters}. Extracted DIP:{dip}')
         print('SAT\nExtracted DIP:',*dip.items(),'\n',sep=' ')
-        
+
         # Consult oracle
         oracleOut = queryOracle(dip,oracleNetlist,inVars,outVars,topLevelMod=topModule,trgtTb=tb,simOutFile=tbOutputFile)
         
         # Append circuit copies to the miter circuit file
-        appendMiter(plLogicFile,dip,oracleOut,inVars,keyVars,outVars,miterFile,suff='_cp{}'.format(iters),ts=troubleshoot)
+        appendMiter(plLogicFile,dip,oracleOut,inVars,keyVars,outVars,miterFile,suff=f'_cp{iters}',debug=debug,hiZVars=hiZVars)
         
         # Append circuit copy to running "DIP circuits" CNF file with DIP and oracle output
-        appendDIPCircuit(plLogicFile,dip,oracleOut,inVars,keyVars,outVars,dipCircuitsFile,suff='_cp{}'.format(iters))
+        appendDIPCircuit(plLogicFile,dip,oracleOut,inVars,keyVars,outVars,dipCircuitsFile,suff=f'_cp{iters}',tsVars=hiZVars)
 
         iters += 1
 
@@ -663,7 +679,7 @@ def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNet
         print('DIP Circuit UNSATISFIED - SAT ATTACK FAILED')
         return -1
 
-    logging.info('Key extracted successfully: {}'.format(key))
+    logging.info(f'Key extracted successfully: {key}')
     print('Extracted key:')
     with open(extractedKeyFile,'w') as f:
         for i,j in sorted(key.items()):
@@ -672,13 +688,13 @@ def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNet
             print(kiPair)
 
     # Wrap-up
-    logging.info('Script concluded. Total runtime: {} seconds'.format(datetime.datetime.now()-startTime))
-    if not verbosity: enablePrint()
+    logging.info(f'Script concluded. Total runtime: {datetime.datetime.now()-startTime} seconds')
+    if not verbose: enablePrint()
     return key
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser('A tool for running SAT attacks on an encrypted netlist written in Z3 for Python.')
+    parser = argparse.ArgumentParser('A tool for running SAT attacks on an encrypted netlist written in Z3 for Python')
     parser.add_argument('plLogicFile',type=str,help='Path to the Python file containing propositional logic clauses to be solved. Clauses must be written in the Z3 Python format. For help, see: https://www.cs.toronto.edu/~victorn/tutorials/sat20/index.html#installation')
     parser.add_argument('inputList',type=str,help='Path to the text file containing a list of inputs to the plLogicFile. Inputs must be separated by a space or newline character')
     parser.add_argument('keyList',type=str,help='Path to the text file containing a list of key inputs to the plLogicFile. Keys must be separated by a space or newline character')
@@ -686,9 +702,10 @@ if __name__ == '__main__':
     parser.add_argument('oracleNetlist',type=str,help='Name + extension of the HDL netlist file for the unencrypted, oracle black box. Input and output names must coincide with what is found in the inputList and outputList files')
     parser.add_argument('topModule',type=str,help='Top-level module name within "oracleNetlist"')
     parser.add_argument('-f','--fresh',default=False,action='store_true',help='Create fresh directories for SAT attack. WARNING: deletes preexisting logs and outputs')
-    parser.add_argument('-po','--pythonOracle',default=False,action='store_true',help='If true, oraclenetlist points to a Python oracle file (alternative to using iVerilog). Oracle function must be declared as "main", and all input variable names must coincide with inputList')
-    parser.add_argument('-t','--troubleshoot',default=False,action='store_true',help='Creates intermediate scripts for the purposes of troubleshooting when an attack goes awry.')
-    parser.add_argument('-v','--verbosity',default=False,action='store_true',help='Print progress of SAT attack to terminal')
+    parser.add_argument('-p','--pythonOracle',default=False,action='store_true',help='If true, oraclenetlist points to a Python oracle file (alternative to using iVerilog). Oracle function must be declared as "main", and all input variable names must coincide with inputList')
+    parser.add_argument('-d','--debug',default=False,action='store_true',help='Creates intermediate scripts in a "debug" directory, for the purposes of troubleshooting when an attack goes awry.')
+    parser.add_argument('-v','--verbose',default=False,action='store_true',help='Print progress of SAT attack to terminal')
+    parser.add_argument('-z','--tristateOuts',default=None,nargs='?',help='Enables "tri-state" mode for circuit outputs. High-impedance mode considers situations where an output may exhibit tri-state behavior and its associated logic value may be invalid. Requires an additional input text file containing the names of the tri-state variables, separated by a space or a newline character')
     clArgs=parser.parse_args()
 
-    satAttack(clArgs.plLogicFile,clArgs.inputList,clArgs.keyList,clArgs.outputList,clArgs.oracleNetlist,clArgs.topModule,clArgs.fresh,clArgs.pythonOracle,clArgs.troubleshoot,clArgs.verbosity)
+    satAttack(clArgs.plLogicFile,clArgs.inputList,clArgs.keyList,clArgs.outputList,clArgs.oracleNetlist,clArgs.topModule,clArgs.fresh,clArgs.pythonOracle,clArgs.debug,clArgs.verbose,clArgs.tristateOuts)
