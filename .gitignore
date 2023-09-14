@@ -4,4 +4,3 @@ src/strapt/__pycache__/
 build_dist.sh
 writeMan.sh
 .vscode/
-satAttack.1.md
