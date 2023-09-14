@@ -2,4 +2,6 @@ tests/
 src/strapt/__pycache__/
 *.egg-info/
 build_dist.sh
+writeMan.sh
 .vscode/
+satAttack.1.md

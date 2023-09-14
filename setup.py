@@ -7,6 +7,8 @@ Author:     Aric Fowler
 Python:     3.6.9
 Updated:    Sept 2022
 '''
+import os
+import sys
 import setuptools
 
 with open('README.md','r',encoding='utf-8') as fhand:
@@ -14,15 +16,16 @@ with open('README.md','r',encoding='utf-8') as fhand:
 
 setuptools.setup(
     name='strapt',
-    version='0.0.4',
+    version='0.0.5',
     author='Aric Fowler',
     author_email='aric.fowler@utdallas.edu',
     description='STRAPT is a set of SAT tools for solving the University of Texas - Dallas TRAP circuit technology, built around the Microsoft Z3 SMT solver.',
     long_description=long_description,
     long_description_context_type='text/markdown',
-    url="https://cometmail.sharepoint.com/sites/ECETRAP-SecurityAnalysis/Shared%20Documents/Forms/AllItems.aspx?FolderCTID=0x0120005DC35724679FFA43B3870ABD93481C76&id=%2Fsites%2FECETRAP%2DSecurityAnalysis%2FShared%20Documents%2FSecurity%20Analysis%2FIn%2DHouse%20SAT%20Tools%2FSAT%5FAttack%5Fv2&viewid=bed26541%2D81f2%2D4c77%2D9fae%2D5d41a0958767",
+    url="https://github.com/aric-fowler/STRAPT",
+    data_files= [('share/man/man1/', ['man/satAttack.1'])],
     project_urls={
-        "Bug Tracker":"",
+        "Bug Tracker":"https://github.com/aric-fowler/STRAPT/issues",
     },
     classifiers=[
         "Programming Language :: Python :: 3",

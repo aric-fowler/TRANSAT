@@ -10,7 +10,10 @@ pip3 uninstall strapt
 
 rm -rf dist/
 
-# This line actually builds the code
+# Write the MANs
+pandoc man/satAttack.1.md -s -t man -o man/satAttack.1
+
+# Builds the wheel & zip
 python3 -m build
 
 cd dist/

@@ -18,6 +18,12 @@ pip3 install strapt
 
 ### Command line:
 ```bash
+# Help:
+satAttack -h
+
+# User manual:
+man satAttack
+
 # SAT attack:
 satAttack plLogicFile inputList keyList outputList oracleNetlist oracleName
 ```
