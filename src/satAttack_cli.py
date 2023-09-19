@@ -19,12 +19,11 @@ def main():
     parser.add_argument('-p','--pythonOracle',default=False,action='store_true',help='If true, oraclenetlist points to a Python oracle file (alternative to using iVerilog). Oracle function must be declared as "main", and all input variable names must coincide with inputList')
     parser.add_argument('-d','--debug',default=False,action='store_true',help='Creates intermediate scripts in a "debug" directory, for the purposes of troubleshooting when an attack goes awry.')
     parser.add_argument('-v','--verbose',default=False,action='store_true',help='Print progress of SAT attack to terminal')
-    parser.add_argument('-z','--tristateOuts',default=None,nargs='?',help='Enables "tri-state" mode for circuit outputs. High-impedance mode considers situations where an output may exhibit tri-state behavior and its associated logic value may be invalid. Requires an additional input text file containing the names of the tri-state variables, separated by a space or a newline character')
+    parser.add_argument('-z',action='store',dest='tristateOuts',default=None,help='Enables "tri-state" mode for circuit outputs. High-impedance mode considers situations where an output may exhibit tri-state behavior and its associated logic value may be invalid. Requires an additional input text file containing the names of the tri-state variables, separated by a space or a newline character')
     clArgs=parser.parse_args()
 
     satAttack(clArgs.plLogicFile,clArgs.inputList,clArgs.keyList,clArgs.outputList,clArgs.oracleNetlist,clArgs.topModule,clArgs.fresh,clArgs.pythonOracle,clArgs.debug,clArgs.verbose,clArgs.tristateOuts)
 
 
-
 if __name__ == '__main__':
-    main()
+    exit(main())
