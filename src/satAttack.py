@@ -5,7 +5,7 @@ for Python, with an unencrypted oracle described in Verilog HDL.
 
 Author:     Aric Fowler
 Python:     3.10.6
-Updated:    May 2023
+Updated:    Sep 2023
 '''
 import os
 import sys
@@ -145,7 +145,7 @@ def setup(plLogicFile,fresh,pythonOracle,verbosity,debug):
         format=logFormat,
         datefmt=logDateFormat,
         level=logging.DEBUG)
-    logging.info(f'SAT attack script called at: {datetime.date.today()}')
+    logging.info(f'SAT attack script called at: {datetime.datetime.now()}')
     logging.info(f'Target PL file: {plLogicFile}')
     logging.info('Output directories created.')
 
@@ -507,6 +507,7 @@ def runPyOracle(oracleIns:dict,oracleFile:io.TextIOWrapper) -> dict:
 
     There's nothing here yet!
     '''
+    raise RuntimeError('Whoops, using a Python oracle is not currently supported. Use a Verilog one instead.')
 
 
 def queryOracle(oracleIns:dict,oracleFile:io.TextIOWrapper,inList:list,outList:list,topLevelMod='',trgtTb='',simOutFile='',oracleSel=False) -> dict:
@@ -645,18 +646,29 @@ def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNet
 
     # SAT attack loop
     iters = 1
+    pastDIPs = []
     while(True):
+        # If 2^N rounds exceeded, the attack has failed to terminate correctly.
+        if(iters > 2**len(inVars)):
+            logging.error(f'Attack entering round {iter}, despite only a possible {2**len(inVars)} DIPs. Attack is improperly formulated. Please review and fix input files.')
+            raise RuntimeError('All possible DIPs explored without expected attack termination. See log for details.')
         
         # Run SAT on miter & extract DIP if SAT
         print(f'\nRunning SAT on Miter clauses, iteration #{iters}')
         sat,dip = runSAT(miterName,inVars)
+        if debug:   # Compare current DIP to past DIPs to see if there is a repeat. If so, throw & log error, and save file containing DIPs
+            for pastDIP in pastDIPs:
+                if ({} == {k: dip[k] for k in dip if k in pastDIP and dip[k] != pastDIP[k]}):   # If this DIP matches a previous one...
+                    logging.debug(f'The attack has revisited DIP {dip} at iteration {iters}. This is the first revisited DIP. The attack has not been formulated properly, and will now terminate early. Check the miter circuit.')
+                    raise RuntimeError('The attack is revisiting a previously-explored DIP. See log for more details.')
         if not sat:
             logging.info(f'Miter circuit UNSATISFIED at iteration #{iters}')
             print('UNSAT')
-            if iters == 1:
+            if iters == 1:  # ... you messed up
                 logging.error(f'The provided encrytped logic file is unsatisfiable within itself. Please review and fix {plLogicFile}')
                 raise RuntimeError('Base circuit unsatisfiable. See log for details.')
-            break   # If no more DIPs; we're done 
+            break   # If no more DIPs, we're done
+        pastDIPs.append(dip)
         logging.info(f'Miter circuit SATISFIED at iteration #{iters}. Extracted DIP:{dip}')
         print('SAT\nExtracted DIP:',*dip.items(),'\n',sep=' ')
 
@@ -679,7 +691,7 @@ def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNet
         print('DIP Circuit UNSATISFIED - SAT ATTACK FAILED')
         return -1
 
-    logging.info(f'Key extracted successfully: {key}')
+    logging.info(f'Key extracted successfully to: {extractedKeyFile}')
     print('Extracted key:')
     with open(extractedKeyFile,'w') as f:
         for i,j in sorted(key.items()):
@@ -705,7 +717,7 @@ if __name__ == '__main__':
     parser.add_argument('-p','--pythonOracle',default=False,action='store_true',help='If true, oraclenetlist points to a Python oracle file (alternative to using iVerilog). Oracle function must be declared as "main", and all input variable names must coincide with inputList')
     parser.add_argument('-d','--debug',default=False,action='store_true',help='Creates intermediate scripts in a "debug" directory, for the purposes of troubleshooting when an attack goes awry.')
     parser.add_argument('-v','--verbose',default=False,action='store_true',help='Print progress of SAT attack to terminal')
-    parser.add_argument('-z','--tristateOuts',default=None,nargs='?',help='Enables "tri-state" mode for circuit outputs. High-impedance mode considers situations where an output may exhibit tri-state behavior and its associated logic value may be invalid. Requires an additional input text file containing the names of the tri-state variables, separated by a space or a newline character')
+    parser.add_argument('-z',action='store',dest='tristateOuts',default=None,help='Enables "tri-state" mode for circuit outputs. High-impedance mode considers situations where an output may exhibit tri-state behavior and its associated logic value may be invalid. Requires an additional input text file containing the names of the tri-state variables, separated by a space or a newline character')    
     clArgs=parser.parse_args()
 
     satAttack(clArgs.plLogicFile,clArgs.inputList,clArgs.keyList,clArgs.outputList,clArgs.oracleNetlist,clArgs.topModule,clArgs.fresh,clArgs.pythonOracle,clArgs.debug,clArgs.verbose,clArgs.tristateOuts)
