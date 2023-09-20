@@ -18,7 +18,7 @@ def main():
     parser.add_argument('-f','--fresh',default=False,action='store_true',help='Create fresh directories for SAT attack. WARNING: deletes preexisting logs and outputs')
     parser.add_argument('-p','--pythonOracle',default=False,action='store_true',help='If true, oraclenetlist points to a Python oracle file (alternative to using iVerilog). Oracle function must be declared as "main", and all input variable names must coincide with inputList')
     parser.add_argument('-d','--debug',default=False,action='store_true',help='Creates intermediate scripts in a "debug" directory, for the purposes of troubleshooting when an attack goes awry.')
-    parser.add_argument('-q','--quiet',default=True,action='store_true',help='Prevent printing of SAT attack progress to terminal')
+    parser.add_argument('-q','--quiet',default=False,action='store_true',help='Prevent printing of SAT attack progress to terminal')
     parser.add_argument('-z',action='store',dest='tristateOuts',default=None,help='Enables "tri-state" mode for circuit outputs. High-impedance mode considers situations where an output may exhibit tri-state behavior and its associated logic value may be invalid. Requires an additional input text file containing the names of the tri-state variables, separated by a space or a newline character')
     clArgs=parser.parse_args()
 
