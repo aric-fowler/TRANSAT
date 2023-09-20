@@ -656,11 +656,11 @@ def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNet
         # Run SAT on miter & extract DIP if SAT
         print(f'\nRunning SAT on Miter clauses, iteration #{iters}')
         sat,dip = runSAT(miterName,inVars)
-        if debug:   # Compare current DIP to past DIPs to see if there is a repeat. If so, throw & log error, and save file containing DIPs
+        if debug:   # Compare current DIP to past DIPs to see if there is a repeat. If so, throw & log error
             for pastDIP in pastDIPs:
                 if ({} == {k: dip[k] for k in dip if k in pastDIP and dip[k] != pastDIP[k]}):   # If this DIP matches a previous one...
-                    logging.debug(f'The attack has revisited DIP {dip} at iteration {iters}. This is the first revisited DIP. The attack has not been formulated properly, and will now terminate early. Check the miter circuit.')
-                    raise RuntimeError('The attack is revisiting a previously-explored DIP. See log for more details.')
+                    logging.debug(f'The attack has revisited DIP {dip} from iteration {iters}. This is the first revisited DIP. The attack has not been formulated properly, and will now terminate early. Check the miter circuit.')
+                    raise RuntimeError('The attack has revisiting a previously-explored DIP. See log for more details.')
         if not sat:
             logging.info(f'Miter circuit UNSATISFIED at iteration #{iters}')
             print('UNSAT')
