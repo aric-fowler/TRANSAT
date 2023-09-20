@@ -19,8 +19,15 @@ satAttack - A SAT attack program, developed for launching SAT attacks on UTD's T
 **-h** 
 : Display help message
 
-**-v** 
-: Prints the results of the SAT attack to the terminal. Not recommended when optimizing runtime or for attacks with many keys.
+**-f**
+: Creates fresh directories for all script outputs. WARNING: deletes prexisting directories.
+
+**-q** 
+: Stops printing of SAT attack results to terminal. Recommended when optimizing runtime or for attacks with many keys.
+
+**-z**
+: Enables the SAT attack to consider outputs that may have high-impedance functionality. May be needed for proper attack on circuits that have tri-state outputs or 
+: transistor-level behavior (like T-gates). Expects a text file containing names of "hiZ output" variables, separated by whitespaces.
 
 # EXAMPLES
 **satAttack plFile.py ins.txt keys.txt outs.txt oracle.v topName -fv**

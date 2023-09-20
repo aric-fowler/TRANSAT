@@ -17,9 +17,22 @@ UTD\[cq]s TRAnsistor-level Programmable (TRAP) fabric.
 \f[B]-h\f[R]
 Display help message
 .TP
-\f[B]-v\f[R]
-Prints the results of the SAT attack to the terminal.
-Not recommended when optimizing runtime or for attacks with many keys.
+\f[B]-f\f[R]
+Creates fresh directories for all script outputs.
+WARNING: deletes prexisting directories.
+.TP
+\f[B]-q\f[R]
+Stops printing of SAT attack results to terminal.
+Recommended when optimizing runtime or for attacks with many keys.
+.TP
+\f[B]-z\f[R]
+Enables the SAT attack to consider outputs that may have high-impedance
+functionality.
+May be needed for proper attack on circuits that have tri-state outputs
+or
+transistor-level behavior (like T-gates).
+Expects a text file containing names of \[lq]hiZ output\[rq] variables,
+separated by whitespaces.
 .SH EXAMPLES
 .TP
 \f[B]satAttack plFile.py ins.txt keys.txt outs.txt oracle.v topName -fv\f[R]

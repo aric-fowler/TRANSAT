@@ -130,12 +130,12 @@ def editLastLine(file:str,newLine:str):
         f.write(str.encode(newLine))
 
 
-def setup(plLogicFile,fresh,pythonOracle,verbosity,debug):
+def setup(plLogicFile,fresh,pythonOracle,quiet,debug):
     '''
     Parses input arguments, creates output and log directories, sets up logging, and elevates select
     variables to global scope.
     '''
-    if not verbosity: blockPrint()
+    if quiet: blockPrint()
     print(f'Executing {os.path.basename(__file__)}')
 
     # Setup logging & output directories
@@ -621,11 +621,11 @@ def appendDIPCircuit(trgtPL:str,DIP:dict,oracleOut:list,inVars:list,keyVars:list
         writeZ3pl(DIPcopyVars,DIPcopy,DIPCircuitFile)
 
 
-def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNetlist:str,topModule:str,fresh=False,pythonOracle=False,debug=False,verbose=True,highImpedance=None):
+def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNetlist:str,topModule:str,fresh=False,pythonOracle=False,debug=False,quiet=False,highImpedance=None):
 
     # Run argument parsing, directory creation, and logging setup
     startTime = datetime.datetime.now()
-    setup(plLogicFile,fresh,pythonOracle,verbose,debug)
+    setup(plLogicFile,fresh,pythonOracle,quiet,debug)
 
     # Read in input lists & output list (.split() will get rid of spaces, tabs, and newlines)
     with open(inputList,'r') as f:
@@ -656,19 +656,13 @@ def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNet
         # Run SAT on miter & extract DIP if SAT
         print(f'\nRunning SAT on Miter clauses, iteration #{iters}')
         sat,dip = runSAT(miterName,inVars)
-        if debug:   # Compare current DIP to past DIPs to see if there is a repeat. If so, throw & log error
-            for pastDIP in pastDIPs:
-                if ({} == {k: dip[k] for k in dip if k in pastDIP and dip[k] != pastDIP[k]}):   # If this DIP matches a previous one...
-                    logging.debug(f'The attack has revisited DIP {dip} from iteration {iters}. This is the first revisited DIP. The attack has not been formulated properly, and will now terminate early. Check the miter circuit.')
-                    raise RuntimeError('The attack has revisiting a previously-explored DIP. See log for more details.')
-        if not sat:
+        if not sat:     # Attack loop exit condition
             logging.info(f'Miter circuit UNSATISFIED at iteration #{iters}')
             print('UNSAT')
             if iters == 1:  # ... you messed up
                 logging.error(f'The provided encrytped logic file is unsatisfiable within itself. Please review and fix {plLogicFile}')
                 raise RuntimeError('Base circuit unsatisfiable. See log for details.')
             break   # If no more DIPs, we're done
-        pastDIPs.append(dip)
         logging.info(f'Miter circuit SATISFIED at iteration #{iters}. Extracted DIP:{dip}')
         print('SAT\nExtracted DIP:',*dip.items(),'\n',sep=' ')
 
@@ -680,6 +674,16 @@ def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNet
         
         # Append circuit copy to running "DIP circuits" CNF file with DIP and oracle output
         appendDIPCircuit(plLogicFile,dip,oracleOut,inVars,keyVars,outVars,dipCircuitsFile,suff=f'_cp{iters}',tsVars=hiZVars)
+
+        # Compare current DIP to past DIPs to see if there is a repeat. If so, throw & log error
+        if debug:
+            for pastDIP in pastDIPs:
+                if ({} == {k: dip[k] for k in dip if k in pastDIP and dip[k] != pastDIP[k]}):   # If this DIP matches a previous one...
+                    rptVars,rptClauses = readZ3pl(miterFile)
+                    writeZ3pl(rptVars,rptClauses,os.path.join(debugDir,f'{miterName}_dip_repeat.py'),prnt=True)
+                    logging.debug(f'The attack has revisited DIP {dip} on iteration {iters}. This is the first revisited DIP. The attack has not been formulated properly, and will now terminate early. Check the miter circuit.')
+                    raise RuntimeError('The attack has revisiting a previously-explored DIP. See log for more details.')
+            pastDIPs.append(dip)
 
         iters += 1
 
@@ -701,7 +705,7 @@ def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNet
 
     # Wrap-up
     logging.info(f'Script concluded. Total runtime: {datetime.datetime.now()-startTime} seconds')
-    if not verbose: enablePrint()
+    if quiet: enablePrint()
     return key
 
 
@@ -716,8 +720,8 @@ if __name__ == '__main__':
     parser.add_argument('-f','--fresh',default=False,action='store_true',help='Create fresh directories for SAT attack. WARNING: deletes preexisting logs and outputs')
     parser.add_argument('-p','--pythonOracle',default=False,action='store_true',help='If true, oraclenetlist points to a Python oracle file (alternative to using iVerilog). Oracle function must be declared as "main", and all input variable names must coincide with inputList')
     parser.add_argument('-d','--debug',default=False,action='store_true',help='Creates intermediate scripts in a "debug" directory, for the purposes of troubleshooting when an attack goes awry.')
-    parser.add_argument('-v','--verbose',default=False,action='store_true',help='Print progress of SAT attack to terminal')
-    parser.add_argument('-z',action='store',dest='tristateOuts',default=None,help='Enables "tri-state" mode for circuit outputs. High-impedance mode considers situations where an output may exhibit tri-state behavior and its associated logic value may be invalid. Requires an additional input text file containing the names of the tri-state variables, separated by a space or a newline character')    
+    parser.add_argument('-q','--quiet',default=False,action='store_true',help='Prevent printing of SAT attack progress to terminal')
+    parser.add_argument('-z',action='store',dest='tristateOuts',default=None,help='Enables "tri-state" mode for circuit outputs. High-impedance mode considers situations where an output may exhibit tri-state behavior and its associated logic value may be invalid. Requires an additional input text file containing the names of the tri-state variables, separated by a space or a newline character')
     clArgs=parser.parse_args()
 
-    satAttack(clArgs.plLogicFile,clArgs.inputList,clArgs.keyList,clArgs.outputList,clArgs.oracleNetlist,clArgs.topModule,clArgs.fresh,clArgs.pythonOracle,clArgs.debug,clArgs.verbose,clArgs.tristateOuts)
+    satAttack(clArgs.plLogicFile,clArgs.inputList,clArgs.keyList,clArgs.outputList,clArgs.oracleNetlist,clArgs.topModule,clArgs.fresh,clArgs.pythonOracle,clArgs.debug,clArgs.quiet,clArgs.tristateOuts)
