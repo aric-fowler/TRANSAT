@@ -315,11 +315,13 @@ def buildMiter(trgtPL:str,inVars:list,keyVars:list,outVars:list,miterFile:str,mS
 
     # Build miter circuit - essentially a bitwise XOR operation followed by a reduction OR ("OR of XORs")
     if hiZVars != None:
-        outVars = outVars + hiZVars
+        outVars = outVars #+ hiZVars
     outSubclauses = []
     for var in outVars:
         outSubclauses.append(f'Xor({var+mSuff+"1"},{var+mSuff+"2"})')
     miterClauses.append(f'Or({",".join(outSubclauses)})     # Miter circuit')
+    for var in hiZVars:
+        miterClauses.append(f'Or({var+mSuff+"1"},{var+mSuff+"2"})')
 
     writeZ3pl(miterVars,miterClauses,miterFile)
 
@@ -649,21 +651,21 @@ def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNet
     pastDIPs = []
     while(True):
         # If 2^N rounds exceeded, the attack has failed to terminate correctly.
-        if(iters > 2**len(inVars)):
-            logging.error(f'Attack entering round {iter}, despite only a possible {2**len(inVars)} DIPs. Attack is improperly formulated. Please review and fix input files.')
+        if(iters > ((2**len(inVars))+1)):
+            logging.error(f'Attack entering round {iters}, despite only a possible {2**len(inVars)} DIPs. Attack is improperly formulated. Please review and fix input files.')
             raise RuntimeError('All possible DIPs explored without expected attack termination. See log for details.')
-        
+
         # Run SAT on miter & extract DIP if SAT
-        print(f'\nRunning SAT on Miter clauses, iteration #{iters}')
+        print(f'\nRunning SAT on Miter clauses, round #{iters}')
         sat,dip = runSAT(miterName,inVars)
         if not sat:     # Attack loop exit condition
-            logging.info(f'Miter circuit UNSATISFIED at iteration #{iters}')
+            logging.info(f'Miter circuit UNSATISFIED at round #{iters}')
             print('UNSAT')
             if iters == 1:  # ... you messed up
                 logging.error(f'The provided encrytped logic file is unsatisfiable within itself. Please review and fix {plLogicFile}')
                 raise RuntimeError('Base circuit unsatisfiable. See log for details.')
             break   # If no more DIPs, we're done
-        logging.info(f'Miter circuit SATISFIED at iteration #{iters}. Extracted DIP:{dip}')
+        logging.info(f'Miter circuit SATISFIED at round #{iters}. Extracted DIP: {dip}')
         print('SAT\nExtracted DIP:',*dip.items(),'\n',sep=' ')
 
         # Consult oracle
@@ -677,11 +679,9 @@ def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNet
 
         # Compare current DIP to past DIPs to see if there is a repeat. If so, throw & log error
         if debug:
-            for pastDIP in pastDIPs:
+            for pastIterMin1,pastDIP in enumerate(pastDIPs):
                 if ({} == {k: dip[k] for k in dip if k in pastDIP and dip[k] != pastDIP[k]}):   # If this DIP matches a previous one...
-                    rptVars,rptClauses = readZ3pl(miterFile)
-                    writeZ3pl(rptVars,rptClauses,os.path.join(debugDir,f'{miterName}_dip_repeat.py'),prnt=True)
-                    logging.debug(f'The attack has revisited DIP {dip} on iteration {iters}. This is the first revisited DIP. The attack has not been formulated properly, and will now terminate early. Check the miter circuit.')
+                    logging.debug(f'The attack has revisited DIP {dip} in round {iters}. This DIP was first explored in round {pastIterMin1+1}. This is the first revisited DIP. The attack has not been formulated properly, and will now terminate early. Check the miter circuit.')
                     raise RuntimeError('The attack has revisiting a previously-explored DIP. See log for more details.')
             pastDIPs.append(dip)
 
