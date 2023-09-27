@@ -225,7 +225,10 @@ def writeZ3pl(z3Vars:dict,z3Lines:list,z3Fn:str,append=False,prnt=False) -> int:
     clauseList.extend(z3Lines)
 
     with open(z3Fn,'w') as f:
-        f.write('from z3 import *\n\n\ndef main():\n')
+        f.write('from z3 import *\n')
+        if prnt:
+            f.write("set_param('verbose',10)\n")
+        f.write('\n\ndef main():\n')
         for var,varType in varList.items():
             f.write(f"\t{var} = {varType}('{var}')\n")
         f.write('\n')
@@ -289,7 +292,7 @@ def copyCircuit(plClauses:list,allVars:dict,inList:list,keyList:list,outList:lis
     return clauses,clauseVars
 
 
-def buildMiter(trgtPL:str,inVars:list,keyVars:list,outVars:list,miterFile:str,mSuff='_m',hiZVars=None):
+def buildMiter(trgtPL:str,inVars:list,keyVars:list,outVars:list,miterFile:str,mSuff='_m',hiZVars={}):
     '''
     Create miter circuit for a given input CNF file. Returns a list of input variable names and a list key variable names for convenience.
 
@@ -313,15 +316,28 @@ def buildMiter(trgtPL:str,inVars:list,keyVars:list,outVars:list,miterFile:str,mS
         miterVars = miterVars | {k:v for k,v in copyVars.items() if k not in miterClauses}
         miterClauses.extend(copy)
 
-    # Build miter circuit - essentially a bitwise XOR operation followed by a reduction OR ("OR of XORs")
-    if hiZVars != None:
-        outVars = outVars #+ hiZVars
+    '''
+    # "RED" miter circuit - a bitwise XOR operation followed by a reduction OR ("OR of XORs") of all logical
+    # output pairs. HiZ output variables are OR'd together such that for all validity bit pairs, one of the 
+    # pair must be true
     outSubclauses = []
-    for var in outVars:
+    for var in outVars:     # Reformulate this to be less constraining?
         outSubclauses.append(f'Xor({var+mSuff+"1"},{var+mSuff+"2"})')
     miterClauses.append(f'Or({",".join(outSubclauses)})     # Miter circuit')
     for var in hiZVars:
         miterClauses.append(f'Or({var+mSuff+"1"},{var+mSuff+"2"})')
+    '''
+
+    # "BLUE" miter circuit - for all output pairs, at least one logical pair must differ with at least one
+    # of the two corresponding hiZ variables being true. Less constrictive than RED. 
+    outSubclauses = []
+    if hiZVars != {}:
+        for outVar, hiZVar in hiZVars.items():
+            outSubclauses.append(f'And(Xor({outVar+mSuff+"1"},{outVar+mSuff+"2"}),Or({hiZVar+mSuff+"1"},{hiZVar+mSuff+"2"}))')
+    else:
+        for var in outVars:
+            outSubclauses.append(f'Xor({var+mSuff+"1"},{var+mSuff+"2"})')
+    miterClauses.append(f'Or({",".join(outSubclauses)})     # Miter circuit')
 
     writeZ3pl(miterVars,miterClauses,miterFile)
 
@@ -533,7 +549,7 @@ def queryOracle(oracleIns:dict,oracleFile:io.TextIOWrapper,inList:list,outList:l
     return oracleOut
 
 
-def appendMiter(copyTrgt:str,DIP:dict,oracleOut:dict,inVars:list,keyVars:list,outVars:list,miterFile:str,suff:str,debug=False,hiZVars=None):
+def appendMiter(copyTrgt:str,DIP:dict,oracleOut:dict,inVars:list,keyVars:list,outVars:list,miterFile:str,suff:str,debug=False,hiZVars={}):
     '''
     Append circuit copies to a preexisting miter circuit to prevent a SAT solver from solving for the same DIP over and over.
 
@@ -578,18 +594,19 @@ def appendMiter(copyTrgt:str,DIP:dict,oracleOut:dict,inVars:list,keyVars:list,ou
             raise RuntimeError('Error encountered when appending constant I/O definition clauses to miter circuit')
         
     # Assign hiZ variables if applicable - they are tied to True, since oracle outputs should always be electrically driven
+    # The phrasing of the implication 
     # NOTE: what if the oracle CAN exhibit a high-impedance output? Then this will need to be either changed such that the 
     # hiZ variables are assigned to the oracle's outputs... or hiZ flag should not be used at all and hiZ variables should be 
     # included in the outputs list
-    if hiZVars != None: 
-        for var in hiZVars:
+    if hiZVars != {}: 
+        for var in hiZVars.values():
             coupleCopy.append(f'{var}{suff}_1 == True')
             coupleCopy.append(f'{var}{suff}_2 == True')
 
     writeZ3pl(coupleVars,coupleCopy,miterFile,append=True)
 
 
-def appendDIPCircuit(trgtPL:str,DIP:dict,oracleOut:list,inVars:list,keyVars:list,outVars:list,DIPCircuitFile:str,suff:str,tsVars=None):
+def appendDIPCircuit(trgtPL:str,DIP:dict,oracleOut:list,inVars:list,keyVars:list,outVars:list,DIPCircuitFile:str,suff:str,tsVars={}):
     '''
     Append a circuit copy with specific I/O to a running file to be solved when all DIPs have been found. If the 
     file does not exist, it is created.
@@ -612,8 +629,8 @@ def appendDIPCircuit(trgtPL:str,DIP:dict,oracleOut:list,inVars:list,keyVars:list
             DIPcopy.append(f'{var}{suff} == True')
         elif val == False:
             DIPcopy.append(f'{var}{suff} == False')
-    if tsVars != None:  # NOTE: these lines need to be changed if hiZ is an expected output from the oracle
-        for var in tsVars:
+    if tsVars != {}:      # NOTE: these lines need to be changed if hiZ is an expected output from the oracle
+        for var in tsVars.values():
             DIPcopy.append(f'{var}{suff} == True')
 
     # Append circuit to file
@@ -637,8 +654,15 @@ def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNet
     with open(outputList,'r') as f:
         outVars = f.read().split()
     if highImpedance is not None:
+        hiZVars = {}
         with open(highImpedance,'r') as f:
-            hiZVars = f.read().split()
+            hiZPairs = f.read().splitlines()
+        for pair in hiZPairs:
+            mtch = re.match(r'\s*(?P<outVar>\w+)\s*:\s*(?P<hiZVar>\w+)\s*$',pair)
+            if mtch.group('outVar') in outVars:
+                hiZVars[mtch.group('outVar')] = mtch.group('hiZVar')
+            else:
+                logging.warning(f'Detected a hiZ variable "{mtch.group("hiZVar")}" correlating to an unrecognized output variable "{mtch.group("outVar")}". The hiZ variable has been ignored.')
     else:
         hiZVars = None
 
@@ -670,10 +694,10 @@ def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNet
 
         # Consult oracle
         oracleOut = queryOracle(dip,oracleNetlist,inVars,outVars,topLevelMod=topModule,trgtTb=tb,simOutFile=tbOutputFile)
-        
+
         # Append circuit copies to the miter circuit file
         appendMiter(plLogicFile,dip,oracleOut,inVars,keyVars,outVars,miterFile,suff=f'_cp{iters}',debug=debug,hiZVars=hiZVars)
-        
+
         # Append circuit copy to running "DIP circuits" CNF file with DIP and oracle output
         appendDIPCircuit(plLogicFile,dip,oracleOut,inVars,keyVars,outVars,dipCircuitsFile,suff=f'_cp{iters}',tsVars=hiZVars)
 
@@ -684,6 +708,8 @@ def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNet
                     logging.debug(f'The attack has revisited DIP {dip} in round {iters}. This DIP was first explored in round {pastIterMin1+1}. This is the first revisited DIP. The attack has not been formulated properly, and will now terminate early. Check the miter circuit.')
                     raise RuntimeError('The attack has revisiting a previously-explored DIP. See log for more details.')
             pastDIPs.append(dip)
+            miterVars,miterCls = readZ3pl(miterFile)
+            writeZ3pl(miterVars,miterCls,os.path.join(debugDir,'miter_final.py'),prnt=True)
 
         iters += 1
 
