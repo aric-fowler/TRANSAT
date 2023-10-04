@@ -2,7 +2,7 @@
 title: SATATTACK
 section: 1
 header: User Manual
-footer: satAttack 0.0.6
+footer: satAttack 0.0.7
 date: September 27, 2023
 ---
 
@@ -46,7 +46,7 @@ satAttack - A SAT attack program, developed for launching SAT attacks on UTD's T
 : O         : vO \
 : z         : vz \
 : circOut   : vcircOut \
-: sum       : vsum \
+: sum       : vsum
 
 # AUTHORS
 Written by Aric Fowler
