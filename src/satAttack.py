@@ -170,12 +170,15 @@ def setup(plLogicFile,fresh,pythonOracle,quiet,debug):
                 print('iVerilog was installed correctly. Proceeding with SAT attack...\n')
 
 
-def readZ3pl(trgtZ3:str) -> Tuple[dict,list]:
+def readZ3pl(trgtZ3:str) -> Tuple[dict,dict,list]:
     '''
     Read a Python Z3 script and parse the variable and function declarations, leaving out any 
-    comment lines or Z3 Solver information. Returns dict of variables and a string of functions.
+    comment lines or Z3 Solver information. Returns dict of variables and their corresponding
+    arguments, and a string of functions.
+
+    varsDict values are a tuple. varsDict[key][0] = varType, varsDict[key][1] = varArgs
     '''
-    varDict = {}
+    varsDict = {}
     funList = []
     with open(trgtZ3,'r') as f:
         f.seek(0)
@@ -183,14 +186,13 @@ def readZ3pl(trgtZ3:str) -> Tuple[dict,list]:
 
     # Search for variables
     for line in lines:
-        mtchObj = re.match(r'^\s*(?P<varID>\w+)\s*=\s*(?P<varType>[a-zA-Z]+)\([\',"](?P<varName>\w+)[\',"]\).*$',line)
+        mtchObj = re.match(r'^\s*(?P<varID>\w+)\s*=\s*(?P<varType>(Bool)|(Int)|(BitVec))\([\',\"](?P<varName>\w+)[\',\"](?P<varArgs>\s*,.*)?\).*$',line)
         if mtchObj:
             if (mtchObj.group('varID') != mtchObj.group('varName')):
                 logging.error(f'Variable {mtchObj.group("varName")} is given a different identifier ("{mtchObj.group("varID")}") in the source Z3 Python script "{trgtZ3}". Change this so they are identical.')
                 raise RuntimeError(f'Variable mismatch name in "{trgtZ3}". See log file for details.')
             else:
-                varDict[mtchObj.group('varID')] = mtchObj.group('varType')
-
+                varsDict[mtchObj.group('varID')] = (mtchObj.group('varType'),mtchObj.group('varArgs'))
 
     # Search for functions (logic clauses)
     for line in lines:
@@ -199,8 +201,7 @@ def readZ3pl(trgtZ3:str) -> Tuple[dict,list]:
             if mtchObj.group('fun') != 'Solver()':
                 funList.append(mtchObj.group('fun'))
 
-
-    return varDict,funList
+    return varsDict,funList
 
 
 def writeZ3pl(z3Vars:dict,z3Lines:list,z3Fn:str,append=False,prnt=False) -> int:
@@ -229,8 +230,11 @@ def writeZ3pl(z3Vars:dict,z3Lines:list,z3Fn:str,append=False,prnt=False) -> int:
         if prnt:
             f.write("set_param('verbose',10)\n")
         f.write('\n\ndef main():\n')
-        for var,varType in varList.items():
-            f.write(f"\t{var} = {varType}('{var}')\n")
+        for var,varAtts in varList.items():     # If the variable declaration requires arguments...
+            if varAtts[1] is not None:
+                f.write(f"\t{var} = {varAtts[0]}('{var}'{varAtts[1]})\n")
+            else:
+                f.write(f"\t{var} = {varAtts[0]}('{var}')\n")
         f.write('\n')
         for i,line in enumerate(clauseList):
             clauseIndList.append('c{}'.format(i))
@@ -240,7 +244,6 @@ def writeZ3pl(z3Vars:dict,z3Lines:list,z3Fn:str,append=False,prnt=False) -> int:
         else:
             f.write(f"\n\ts = Solver()\n\ts.add({','.join(clauseIndList)})\n\twith open('{z3Fn}.txt','w') as f:\n\t\tf.write(str(s.check())+'\\n\\n')\n\t\ttry:\n\t\t\tm = s.model()\n\t\t\tfor item in sorted([(d, m[d]) for d in m], key = lambda x: str(x[0])):\n\t\t\t\tf.write(str(item)+'\\n')\n\t\texcept:\n\t\t\tNone\n\n\nif __name__ == '__main__':\n\tmain()")
  
-
     return 0
 
 
@@ -271,6 +274,7 @@ def copyCircuit(plClauses:list,allVars:dict,inList:list,keyList:list,outList:lis
     outList         - List containing names of each output variable
     suffix          - String containing suffix to be appended to 
     '''
+    # Compile list of variables to be copied with new names
     changeList = {}
     if modIns:
         changeList = changeList | {k: allVars[k] for k in set(inList).intersection(allVars.keys())}
@@ -282,6 +286,7 @@ def copyCircuit(plClauses:list,allVars:dict,inList:list,keyList:list,outList:lis
         netsList = [x for x in allVars if x not in (inList+outList+keyList)]
         changeList = changeList | {k: allVars[k] for k in set(netsList).intersection(allVars.keys())}
 
+    # Create variable and clause copies
     clauses = plClauses
     clauseVars = {k:v for k,v in allVars.items() if k not in changeList}
     for var in changeList.keys():
@@ -315,18 +320,6 @@ def buildMiter(trgtPL:str,inVars:list,keyVars:list,outVars:list,miterFile:str,mS
         copy,copyVars = copyCircuit(copy,copyVars,inVars,keyVars,outVars,suffix=('_'+str(i)),modIns=False,modOuts=False,modNets=False)
         miterVars = miterVars | {k:v for k,v in copyVars.items() if k not in miterClauses}
         miterClauses.extend(copy)
-
-    '''
-    # "RED" miter circuit - a bitwise XOR operation followed by a reduction OR ("OR of XORs") of all logical
-    # output pairs. HiZ output variables are OR'd together such that for all validity bit pairs, one of the 
-    # pair must be true
-    outSubclauses = []
-    for var in outVars:     # Reformulate this to be less constraining?
-        outSubclauses.append(f'Xor({var+mSuff+"1"},{var+mSuff+"2"})')
-    miterClauses.append(f'Or({",".join(outSubclauses)})     # Miter circuit')
-    for var in hiZVars:
-        miterClauses.append(f'Or({var+mSuff+"1"},{var+mSuff+"2"})')
-    '''
 
     # "BLUE" miter circuit - for all output pairs, at least one logical pair must differ with at least one
     # of the two corresponding hiZ variables being true. Less constrictive than RED. 
