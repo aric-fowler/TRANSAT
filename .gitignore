@@ -8,4 +8,6 @@ src/strapt/__pycache__/
 build_dist.sh
 writeMan.sh
 test/Test02-C17/work/__pycache__/
-test/Test08-NAND2/work/__pycache__/
+test/Test02-C17/.vscode/
+test/Test08-TRAP_NAND2/work/__pycache__/
+test/Test08-TRAP_NAND2/.vscode/
