@@ -1,0 +1,16 @@
+Nov-13-2023_02-26PM INFO: SAT attack script called at: 2023-11-13 14:26:48.752351
+
+Nov-13-2023_02-26PM INFO: Target PL file: encryptC17pl.py
+
+Nov-13-2023_02-26PM INFO: Output directories created.
+
+Nov-13-2023_02-26PM WARNING: Code does not currently support cross-checking I/O names found in text lists against netlist files. Please check manually.
+
+Nov-13-2023_02-26PM INFO: Creating SAT verification script, here: /home/axf190026/Projects/TRAP/Security/SAT_Tools_v2/test/Test02-C17/work/verMiter.py
+
+Nov-13-2023_02-26PM INFO: Running SAT verification script...
+
+Nov-13-2023_02-26PM INFO: Verification successful! Programmed circuit works correctly for all input patterns.
+
+Nov-13-2023_02-26PM INFO: satVerify.py concluded. Total runtime: 0:00:00.061494 seconds
+
