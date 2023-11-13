@@ -169,7 +169,7 @@ def setup(plLogicFile,fresh,quiet):
     # Setup logging & output directories
     initDirs(workDir,logDir,freshDirs=fresh)
     logging.basicConfig(
-        filename= os.path.join(here,logDir)+logName+now+'.log',
+        filename= os.path.join(here,logDir)+logName+'_'+now+'.log',
         format=logFormat,
         datefmt=logDateFormat,
         level=logging.DEBUG)
@@ -359,7 +359,7 @@ def satVerify(plEncryptedFile:str,plFunctionFile:str,ioCSV:str,keyValueCSV:str,f
 
     # Wrap-up
     logging.info(f'{os.path.basename(__file__)} concluded. Total runtime: {datetime.datetime.now()-startTime} seconds')
-    print(f'\nScript {os.path.basename(__file__)} concluded\n')
+    print(f'\nScript {os.path.basename(__file__)} concluded.\n')
     if quiet: enablePrint()
     return decision,voiVals
 

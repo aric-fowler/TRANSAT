@@ -1414,7 +1414,7 @@ def trapFabricBuilder(numRows,numCols,pinMap,outputFn='trapFabricPL',maxCount=No
         writer.writerows(ioCSVrows)
 
     print(f'\nThe output fabric model {outputFn}.py has {allCls.__len__()} clauses and {allVars.__len__()} variables.\n')
-    print(f'Script {os.path.basename(__file__)} concluded\n')
+    print(f'Script {os.path.basename(__file__)} concluded.\n')
     return os.EX_OK
 
 
