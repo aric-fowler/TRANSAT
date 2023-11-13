@@ -134,7 +134,7 @@ def setup(plLogicFile,fresh,pythonOracle,quiet,debug):
     # Setup logging & output directories
     initDirs(workDir,logDir,freshDirs=fresh,debug=debug)
     logging.basicConfig(
-        filename= os.path.join(here,logDir)+logName+now+'.log',
+        filename= os.path.join(here,logDir)+logName+'_'+now+'.log',
         format=logFormat,
         datefmt=logDateFormat,
         level=logging.DEBUG)
@@ -716,16 +716,19 @@ def satAttack(plLogicFile:str,ioCSV:str,oracleNetlist:str,topModule:str,noEarlyT
 
     # Save extracted key
     logging.info(f'Key extracted successfully to: {extractedKeyCSV}')
-    print('Extracted key:')
-    for i,j in sorted(key.items()):
-            print(f'{i}\t:\t{j}')
+    if debug:
+        print('Extracted key:')
+        for i,j in sorted(key.items()):
+                print(f'{i}\t:\t{j}')
+    else:
+        print(f'Key extracted successfully to: {extractedKeyCSV}')
     with open(extractedKeyCSV,'w') as f:
         writer = csv.writer(f,delimiter=',')
         writer.writerows(sorted(key.items()))
 
     # Wrap-up
     logging.info(f'{os.path.basename(__file__)} concluded. Total runtime: {datetime.datetime.now()-startTime} seconds')
-    print(f'\nScript {os.path.basename(__file__)} concluded\n')
+    print(f'\nScript {os.path.basename(__file__)} concluded.\n')
     if quiet: enablePrint()
     return key
 
