@@ -20,12 +20,17 @@ pip3 install strapt
 ```bash
 # Help:
 satAttack -h
+satVerify -h
 
 # User manual:
 man satAttack
+man satVerify
 
 # SAT attack:
-satAttack plLogicFile inputList keyList outputList oracleNetlist oracleName
+satAttack plLogicFile ioCSV oracleNetlist oracleName
+
+# SAT verification:
+satVerify plEncryptedFile plFunctionFile ioCSV keyValueCSV
 ```
 
 ### Within Python:

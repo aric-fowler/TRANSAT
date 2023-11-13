@@ -4,14 +4,13 @@
 # https://packaging.python.org/en/latest/tutorials/packaging-projects/
 #
 # Author:   Aric Fowler
-# Updated:  Apr 2023
-
-pip3 uninstall strapt
+# Updated:  Oct 2023
 
 rm -rf dist/
 
 # Write the MANs
 pandoc man/satAttack.1.md -s -t man -o man/satAttack.1
+pandoc man/satVerify.1.md -s -t man -o man/satVerify.1
 
 # Builds the wheel & zip
 python3 -m build
