@@ -7,4 +7,5 @@ src/strapt/__pycache__/
 *.egg-info/
 build_dist.sh
 writeMan.sh
-.vscode/
+tests/Test02-C17/work/__pycache__/
+tests/Test08-NAND2/work/__pycache__
