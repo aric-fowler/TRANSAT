@@ -10,6 +10,7 @@ Updated:    Sep 2023
 import os
 import sys
 import apt
+import csv
 import shutil
 import glob
 import re
@@ -19,30 +20,22 @@ import datetime
 import importlib
 from typing import Tuple
 from z3 import *
-
+from .globals import *       # STRAPT common global variables
 
 # -------------------------------------------------------------------------------------------------
 # Globals
 # -------------------------------------------------------------------------------------------------
-logFormat = '%(asctime)s %(levelname)s: %(message)s\n'
-logDateFormat = '%b-%d-%Y_%I-%M%p'
+logName = 'satAttack'
 miterName = 'miter'
 miterSuffix = '_m'
 dipCircuitsName = 'dipCircuits'
 tbName = 'tb.v'
 tbOutputFile = 'vOut'
 
-here = os.getcwd()
-now = datetime.datetime.now().strftime(logDateFormat)
-
-workDir = 'work' + '/'
-logDir = 'log' + '/'
-debugDir = 'debug' + '/'
-
 miterFile = os.path.join(here,workDir) + miterName + '.py'
 dipCircuitsFile = os.path.join(here,workDir) + dipCircuitsName + '.py'
 tb = os.path.join(here,workDir) + tbName
-extractedKeyFile = os.path.join(here,workDir) + 'extracted_key.txt'
+extractedKeyCSV = os.path.join(here,workDir) + 'extracted_key.csv'
 
 
 # -------------------------------------------------------------------------------------------------
@@ -136,12 +129,12 @@ def setup(plLogicFile,fresh,pythonOracle,quiet,debug):
     variables to global scope.
     '''
     if quiet: blockPrint()
-    print(f'Executing {os.path.basename(__file__)}')
+    print(f'Executing {os.path.basename(__file__)}...')
 
     # Setup logging & output directories
     initDirs(workDir,logDir,freshDirs=fresh,debug=debug)
     logging.basicConfig(
-        filename= os.path.join(here,logDir)+now+'.log',
+        filename= os.path.join(here,logDir)+logName+now+'.log',
         format=logFormat,
         datefmt=logDateFormat,
         level=logging.DEBUG)
@@ -237,7 +230,7 @@ def writeZ3pl(z3Vars:dict,z3Lines:list,z3Fn:str,append=False,prnt=False) -> int:
                 f.write(f"\t{var} = {varAtts[0]}('{var}')\n")
         f.write('\n')
         for i,line in enumerate(clauseList):
-            clauseIndList.append('c{}'.format(i))
+            clauseIndList.append(f'c{i}')
             f.write(f'\t{clauseIndList[i]} = {line}\n')
         if not prnt:
             f.write(f"\n\ts = Solver()\n\ts.add({','.join(clauseIndList)})\n\ttry:\n\t\treturn s.check(), s.model()\n\texcept:\n\t\treturn s.check(), None\n\n\nif __name__ == '__main__':\n\tmain()")
@@ -316,13 +309,13 @@ def buildMiter(trgtPL:str,inVars:list,keyVars:list,outVars:list,miterFile:str,mS
     miterVars = {}
     miterClauses = []
     for i in range(1,3):
-        copy,copyVars = copyCircuit(plClauses,plVars,inVars,keyVars,outVars,suffix=mSuff+str(i),modIns=False,modKeys=False)
-        copy,copyVars = copyCircuit(copy,copyVars,inVars,keyVars,outVars,suffix=('_'+str(i)),modIns=False,modOuts=False,modNets=False)
+        copy,copyVars = copyCircuit(plClauses,plVars,inVars,keyVars,outVars,suffix=f'{mSuff}{i}',modIns=False,modKeys=False)
+        copy,copyVars = copyCircuit(copy,copyVars,inVars,keyVars,outVars,suffix=f'_{i}',modIns=False,modOuts=False,modNets=False)  # This "recopy" step creates unique keys
         miterVars = miterVars | {k:v for k,v in copyVars.items() if k not in miterClauses}
         miterClauses.extend(copy)
 
     # "BLUE" miter circuit - for all output pairs, at least one logical pair must differ with at least one
-    # of the two corresponding hiZ variables being true. Less constrictive than RED. 
+    # of the two corresponding hiZ variables being true.
     outSubclauses = []
     if hiZVars != {}:
         for outVar, hiZVar in hiZVars.items():
@@ -359,9 +352,9 @@ def runSAT(trgtZ3:str,voi=[]) -> Tuple[bool,list]:
         satisfied = True
         modelVals = m2dict(model)
         if voi != []:
-            voiVals = {k: modelVals[k] for k in set(voi).intersection(modelVals.keys())}
+            voiVals = dict(sorted({k: modelVals[k] for k in set(voi).intersection(modelVals.keys())}.items()))
         else:
-            voiVals = modelVals
+            voiVals = dict(sorted(modelVals.items()))
     else:
         satisfied = False
         voiVals = None
@@ -633,31 +626,34 @@ def appendDIPCircuit(trgtPL:str,DIP:dict,oracleOut:list,inVars:list,keyVars:list
         writeZ3pl(DIPcopyVars,DIPcopy,DIPCircuitFile)
 
 
-def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNetlist:str,topModule:str,fresh=False,pythonOracle=False,debug=False,quiet=False,highImpedance=None):
+def satAttack(plLogicFile:str,ioCSV:str,oracleNetlist:str,topModule:str,noEarlyTermination=False,fresh=False,pythonOracle=False,debug=False,quiet=False,highImpedance=False):
 
     # Run argument parsing, directory creation, and logging setup
     startTime = datetime.datetime.now()
     setup(plLogicFile,fresh,pythonOracle,quiet,debug)
 
-    # Read in input lists & output list (.split() will get rid of spaces, tabs, and newlines)
-    with open(inputList,'r') as f:
-        inVars = f.read().split()
-    with open(keyList,'r') as f:
-        keyVars = f.read().split()
-    with open(outputList,'r') as f:
-        outVars = f.read().split()
-    if highImpedance is not None:
-        hiZVars = {}
-        with open(highImpedance,'r') as f:
-            hiZPairs = f.read().splitlines()
-        for pair in hiZPairs:
-            mtch = re.match(r'\s*(?P<outVar>\w+)\s*:\s*(?P<hiZVar>\w+)\s*$',pair)
-            if mtch.group('outVar') in outVars:
-                hiZVars[mtch.group('outVar')] = mtch.group('hiZVar')
+    inVars = []
+    keyVars = []
+    outVars = []
+    hiZVars = {}
+    with open(ioCSV,'r') as f:
+        reader = csv.reader(f)
+        for row in reader:
+            ioNm,ioAtts = row[0],row[1:]
+            if ioAtts[0] == 'input':
+                inVars.append(ioNm)
+            elif ioAtts[0] == 'key':
+                keyVars.append(ioNm)
+            elif (ioAtts[0] == 'output') and highImpedance:
+                outVars.append(ioNm)
+                try:
+                    hiZVars[ioNm] = ioAtts[1]
+                except:
+                    raise RuntimeError(f'I/O file {ioCSV} not formatted correctly to indicate a matching HiZ variable to output variable {ioNm}')
+            elif (ioAtts[0] == 'output') and not highImpedance:
+                outVars.append(ioNm)
             else:
-                logging.warning(f'Detected a hiZ variable "{mtch.group("hiZVar")}" correlating to an unrecognized output variable "{mtch.group("outVar")}". The hiZ variable has been ignored.')
-    else:
-        hiZVars = None
+                raise RuntimeError(f'I/O {ioNm} has unrecognized data type "{ioAtts[0]}". Please revise I/O file {ioCSV}')
 
     # Create miter circuit
     buildMiter(plLogicFile,inVars,keyVars,outVars,miterFile,mSuff=miterSuffix,hiZVars=hiZVars)
@@ -671,7 +667,11 @@ def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNet
         if(iters > ((2**len(inVars))+1)):
             logging.error(f'Attack entering round {iters}, despite only a possible {2**len(inVars)} DIPs. Attack is improperly formulated. Please review and fix input files.')
             raise RuntimeError('All possible DIPs explored without expected attack termination. See log for details.')
-
+        # We've already explored every I/O combination as a DIP, then we can be done early. No need for the final round, since it should return UNSAT (nothing new learned on that round).
+        elif(iters > (2**len(inVars))) and noEarlyTermination:
+            logging.warning(f'Attack entering round {iters}. All possible input patterns have been explored as DIPs. Since all information has been learned, and this round is expected to return UNSAT, this round will be skipped.')
+            print('All possible input patterns have been explored as DIPs. Skipping ahead to key solve step...')
+            break
         # Run SAT on miter & extract DIP if SAT
         print(f'\nRunning SAT on Miter clauses, round #{iters}')
         sat,dip = runSAT(miterName,inVars)
@@ -714,16 +714,18 @@ def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNet
         print('DIP Circuit UNSATISFIED - SAT ATTACK FAILED')
         return -1
 
-    logging.info(f'Key extracted successfully to: {extractedKeyFile}')
+    # Save extracted key
+    logging.info(f'Key extracted successfully to: {extractedKeyCSV}')
     print('Extracted key:')
-    with open(extractedKeyFile,'w') as f:
-        for i,j in sorted(key.items()):
-            kiPair = '{0}   :   {1}'.format(i,j)
-            f.write(kiPair+'\n')
-            print(kiPair)
+    for i,j in sorted(key.items()):
+            print(f'{i}\t:\t{j}')
+    with open(extractedKeyCSV,'w') as f:
+        writer = csv.writer(f,delimiter=',')
+        writer.writerows(sorted(key.items()))
 
     # Wrap-up
-    logging.info(f'Script concluded. Total runtime: {datetime.datetime.now()-startTime} seconds')
+    logging.info(f'{os.path.basename(__file__)} concluded. Total runtime: {datetime.datetime.now()-startTime} seconds')
+    print(f'\nScript {os.path.basename(__file__)} concluded\n')
     if quiet: enablePrint()
     return key
 
@@ -731,16 +733,15 @@ def satAttack(plLogicFile:str,inputList:str,keyList:str,outputList:str,oracleNet
 if __name__ == '__main__':
     parser = argparse.ArgumentParser('A tool for running SAT attacks on an encrypted netlist written in Z3 for Python')
     parser.add_argument('plLogicFile',type=str,help='Path to the Python file containing propositional logic clauses to be solved. Clauses must be written in the Z3 Python format. For help, see: https://www.cs.toronto.edu/~victorn/tutorials/sat20/index.html#installation')
-    parser.add_argument('inputList',type=str,help='Path to the text file containing a list of inputs to the plLogicFile. Inputs must be separated by a space or newline character')
-    parser.add_argument('keyList',type=str,help='Path to the text file containing a list of key inputs to the plLogicFile. Keys must be separated by a space or newline character')
-    parser.add_argument('outputList',type=str,help='Path to the text file containing a list of outputs to the plLogicFile. Outputs must be separated by a space or newline character')
-    parser.add_argument('oracleNetlist',type=str,help='Name + extension of the HDL netlist file for the unencrypted, oracle black box. Input and output names must coincide with what is found in the inputList and outputList files')
+    parser.add_argument('ioCSV',type=str,help='Path to the comma-delimited CSV file containing a list of input/output/key names, their corresponding type (input/output/key), and a corresponding HiZ variable, if applicable.')
+    parser.add_argument('oracleNetlist',type=str,help='Path to the HDL netlist file for the unencrypted, oracle black box. Input and output names must coincide with what is found in the inputList and outputList files')
     parser.add_argument('topModule',type=str,help='Top-level module name within "oracleNetlist"')
+    parser.add_argument('-e','--disableEarlyTermination',default=True,action='store_false',help='By default, skips the final (UNSAT) round of the attack if all possible inputs are explored as DIPs. Enable flag to go through final round regardless')
+    parser.add_argument('-d','--debug',default=False,action='store_true',help='Creates intermediate scripts in a "debug" directory, for the purposes of troubleshooting when an attack goes awry')
     parser.add_argument('-f','--fresh',default=False,action='store_true',help='Create fresh directories for SAT attack. WARNING: deletes preexisting logs and outputs')
     parser.add_argument('-p','--pythonOracle',default=False,action='store_true',help='If true, oraclenetlist points to a Python oracle file (alternative to using iVerilog). Oracle function must be declared as "main", and all input variable names must coincide with inputList')
-    parser.add_argument('-d','--debug',default=False,action='store_true',help='Creates intermediate scripts in a "debug" directory, for the purposes of troubleshooting when an attack goes awry.')
     parser.add_argument('-q','--quiet',default=False,action='store_true',help='Prevent printing of SAT attack progress to terminal')
-    parser.add_argument('-z',action='store',dest='tristateOuts',default=None,help='Enables "tri-state" mode for circuit outputs. High-impedance mode considers situations where an output may exhibit tri-state behavior and its associated logic value may be invalid. Requires an additional input text file containing the names of the tri-state variables, separated by a space or a newline character')
+    parser.add_argument('-z','--tristate',default=False,action='store_true',help='Enables "tri-state" mode for circuit outputs. High-impedance mode considers situations where an output may exhibit tri-state behavior and its associated logic value may be invalid. The correlating tri-state variable name must be listed after the "output" type in the ioCSV file')
     clArgs=parser.parse_args()
 
-    satAttack(clArgs.plLogicFile,clArgs.inputList,clArgs.keyList,clArgs.outputList,clArgs.oracleNetlist,clArgs.topModule,clArgs.fresh,clArgs.pythonOracle,clArgs.debug,clArgs.quiet,clArgs.tristateOuts)
+    satAttack(clArgs.plLogicFile,clArgs.ioCSV,clArgs.oracleNetlist,clArgs.topModule,clArgs.disableEarlyTermination,clArgs.fresh,clArgs.pythonOracle,clArgs.debug,clArgs.quiet,clArgs.tristate)
