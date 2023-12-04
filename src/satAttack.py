@@ -9,7 +9,6 @@ Updated:    Sep 2023
 '''
 import os
 import sys
-import apt
 import csv
 import shutil
 import glob
@@ -150,11 +149,9 @@ def setup(plLogicFile,fresh,pythonOracle,quiet,debug):
 
     # Check to see if iVerilog is installed if "-po" argument is not provided
     if pythonOracle is None:
-        try:
-            cache = apt.Cache()
-            if cache['iverilog'].is_installed:
-                pass
-        except:
+        if shutil.which('iverilog') is not None:
+            pass
+        else:
             print('It appears iVerilog is not installed. Running installation now...')
             returnCode = os.system('sudo apt install iverilog')
             if returnCode != 0:
