@@ -14,7 +14,7 @@ with open('README.md','r',encoding='utf-8') as fhand:
 
 setuptools.setup(
     name='strapt',
-    version='0.1.0',
+    version='0.1.1',
     author='Aric Fowler',
     author_email='aric.fowler@utdallas.edu',
     description='STRAPT is a set of SAT tools for solving the University of Texas - Dallas TRAP circuit technology, built around the Microsoft Z3 SMT solver.',
@@ -34,7 +34,7 @@ setuptools.setup(
     'z3-solver',
     'python-apt'],
     packages=setuptools.find_packages(),
-    python_requires='>=3.10',
+    python_requires='>=3.6',
     entry_points={
         'console_scripts': [
             'satAttack = src.satAttack_cli:main',

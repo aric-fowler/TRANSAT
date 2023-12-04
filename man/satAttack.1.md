@@ -2,7 +2,7 @@
 title: SATATTACK
 section: 1
 header: User Manual
-footer: satAttack 0.1.0
+footer: satAttack 0.1.1
 date: November 13, 2023
 ---
 

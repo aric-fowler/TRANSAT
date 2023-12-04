@@ -2,7 +2,7 @@
 title: SATVERIFY
 section: 1
 header: User Manual
-footer: satVerify 0.1.0
+footer: satVerify 0.1.1
 date: November 3, 2023
 ---
 
