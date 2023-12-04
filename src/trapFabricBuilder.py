@@ -11,11 +11,11 @@ import os
 import csv
 import argparse
 from z3 import *
-from .globals import *
 
 # -------------------------------------------------------------------------------------------------
 # Globals
 # -------------------------------------------------------------------------------------------------
+from .globals import *       # STRAPT common global variables
 
 trapUnitVarTmplt = {'C1L21_{X}_{Y}':('Bool',None),
 'C1L22_{X}_{Y}':('Bool',None),
@@ -726,42 +726,6 @@ trapUnitClsTmplt = ['(Implies(L31_{X}_{Y}L41_{X}_{Y}, (L31_{X}_{Y} == L41_{X}_{Y
 '(VL47_{X}_{Y} == Or(isInpL47_{X}_{Y}, And(L47_{X}_{A}L47_{X}_{Y}, Not(DL47_{X}_{A}L47_{X}_{Y}), VL47_{X}_{A}), And(L47_{X}_{Y}L47_{X}_{B}, DL47_{X}_{Y}L47_{X}_{B}, VL47_{X}_{B}), And(L31_{X}_{Y}L47_{X}_{Y}, DL31_{X}_{Y}L47_{X}_{Y}, VL31_{X}_{Y}),  And(L34_{X}_{Y}L47_{X}_{Y}, DL34_{X}_{Y}L47_{X}_{Y}, VL34_{X}_{Y}),  And(L37_{X}_{Y}L47_{X}_{Y}, DL37_{X}_{Y}L47_{X}_{Y}, VL37_{X}_{Y}),  And(L47_{X}_{Y}C3L22_{X}_{Y}, DL47_{X}_{Y}C3L22_{X}_{Y}, VC3L22_{X}_{Y}),  And(L47_{X}_{Y}C3L2Z_{X}_{Y}, DL47_{X}_{Y}C3L2Z_{X}_{Y}, VC3L2Z_{X}_{Y})))',
 '(VL48_{X}_{Y} == Or(isInpL48_{X}_{Y}, And(L48_{X}_{A}L48_{X}_{Y}, Not(DL48_{X}_{A}L48_{X}_{Y}), VL48_{X}_{A}), And(L48_{X}_{Y}L48_{X}_{B}, DL48_{X}_{Y}L48_{X}_{B}, VL48_{X}_{B}), And(L32_{X}_{Y}L48_{X}_{Y}, DL32_{X}_{Y}L48_{X}_{Y}, VL32_{X}_{Y}),  And(L35_{X}_{Y}L48_{X}_{Y}, DL35_{X}_{Y}L48_{X}_{Y}, VL35_{X}_{Y}),  And(L38_{X}_{Y}L48_{X}_{Y}, DL38_{X}_{Y}L48_{X}_{Y}, VL38_{X}_{Y}),  And(L48_{X}_{Y}C3L23_{X}_{Y}, DL48_{X}_{Y}C3L23_{X}_{Y}, VC3L23_{X}_{Y}),  And(L48_{X}_{Y}C3L2Z_{X}_{Y}, DL48_{X}_{Y}C3L2Z_{X}_{Y}, VC3L2Z_{X}_{Y})))',
 '(VL49_{X}_{Y} == Or(isInpL49_{X}_{Y}, And(L49_{X}_{A}L49_{X}_{Y}, Not(DL49_{X}_{A}L49_{X}_{Y}), VL49_{X}_{A}), And(L49_{X}_{Y}L49_{X}_{B}, DL49_{X}_{Y}L49_{X}_{B}, VL49_{X}_{B}), And(L33_{X}_{Y}L49_{X}_{Y}, DL33_{X}_{Y}L49_{X}_{Y}, VL33_{X}_{Y}),  And(L36_{X}_{Y}L49_{X}_{Y}, DL36_{X}_{Y}L49_{X}_{Y}, VL36_{X}_{Y}),  And(L39_{X}_{Y}L49_{X}_{Y}, DL39_{X}_{Y}L49_{X}_{Y}, VL39_{X}_{Y}),  And(L49_{X}_{Y}C3L21_{X}_{Y}, DL49_{X}_{Y}C3L21_{X}_{Y}, VC3L21_{X}_{Y}),  And(L49_{X}_{Y}C3L2Z_{X}_{Y}, DL49_{X}_{Y}C3L2Z_{X}_{Y}, VC3L2Z_{X}_{Y})))',
-'(Not(VL41_{X}_{A}))',
-'(Not(VL42_{X}_{A}))',
-'(Not(VL43_{X}_{A}))',
-'(Not(VL44_{X}_{A}))',
-'(Not(VL45_{X}_{A}))',
-'(Not(VL46_{X}_{A}))',
-'(Not(VL47_{X}_{A}))',
-'(Not(VL48_{X}_{A}))',
-'(Not(VL49_{X}_{A}))',
-'(Not(VL41_{X}_{B}))',
-'(Not(VL42_{X}_{B}))',
-'(Not(VL43_{X}_{B}))',
-'(Not(VL44_{X}_{B}))',
-'(Not(VL45_{X}_{B}))',
-'(Not(VL46_{X}_{B}))',
-'(Not(VL47_{X}_{B}))',
-'(Not(VL48_{X}_{B}))',
-'(Not(VL49_{X}_{B}))',
-'(Not(VL31_{L}_{Y}))',
-'(Not(VL32_{L}_{Y}))',
-'(Not(VL33_{L}_{Y}))',
-'(Not(VL34_{L}_{Y}))',
-'(Not(VL35_{L}_{Y}))',
-'(Not(VL36_{L}_{Y}))',
-'(Not(VL37_{L}_{Y}))',
-'(Not(VL38_{L}_{Y}))',
-'(Not(VL39_{L}_{Y}))',
-'(Not(VL31_{R}_{Y}))',
-'(Not(VL32_{R}_{Y}))',
-'(Not(VL33_{R}_{Y}))',
-'(Not(VL34_{R}_{Y}))',
-'(Not(VL35_{R}_{Y}))',
-'(Not(VL36_{R}_{Y}))',
-'(Not(VL37_{R}_{Y}))',
-'(Not(VL38_{R}_{Y}))',
-'(Not(VL39_{R}_{Y}))',
 '(Implies(Not(VC1L23_{X}_{Y}), Not(M2C1P3_{X}_{Y})))',
 '(Implies(Not(VC1L22_{X}_{Y}), Not(M2C1P2_{X}_{Y})))',
 '(Implies(Not(VC1L21_{X}_{Y}), Not(M2C1P1_{X}_{Y})))',
@@ -810,9 +774,6 @@ trapUnitClsTmplt = ['(Implies(L31_{X}_{Y}L41_{X}_{Y}, (L31_{X}_{Y} == L41_{X}_{Y
 '(Implies(C1N1_{X}_{Y}, And(DC3N2_{L}_{Y}, Not(DC1N2_{X}_{Y}))))',
 '(Implies(C2N1_{X}_{Y}, And(DC1N2_{X}_{Y}, Not(DC2N2_{X}_{Y}))))',
 '(Implies(C3N1_{X}_{Y}, And(DC2N2_{X}_{Y}, Not(DC3N2_{X}_{Y}))))',
-'(C3P2_{L}_{Y})',
-'(Not(C3N2_{L}_{Y}))',
-'(Not(C3NH_{L}_{Y}))',
 '(VC1P_{X}_{Y} == Or(Not(C1P3_{X}_{Y}), And(VC2P_{X}_{Y}, Not(C1P2_{X}_{Y}), Not(DC1P2_{X}_{Y})), And(VC3P_{L}_{Y}, Not(C3P2_{L}_{Y}), DC3P2_{L}_{Y})))',
 '(VC2P_{X}_{Y} == Or(Not(C2P3_{X}_{Y}), And(VC1P_{X}_{Y}, Not(C1P2_{X}_{Y}), DC1P2_{X}_{Y}), And(VC3P_{X}_{Y}, Not(C2P2_{X}_{Y}), Not(DC2P2_{X}_{Y}))))',
 '(VC3P_{X}_{Y} == Or(Not(C3P3_{X}_{Y}), And(VC2P_{X}_{Y}, Not(C2P2_{X}_{Y}), DC2P2_{X}_{Y}), And(VC1P_{R}_{Y}, Not(C3P2_{X}_{Y}), Not(DC3P2_{X}_{Y}))))',
@@ -822,12 +783,6 @@ trapUnitClsTmplt = ['(Implies(L31_{X}_{Y}L41_{X}_{Y}, (L31_{X}_{Y} == L41_{X}_{Y
 '(VC1N_{X}_{Y} == Or((C1N3_{X}_{Y}), And(VC2N_{X}_{Y}, C1N2_{X}_{Y}, Not(DC1N2_{X}_{Y})), And(VC3N_{L}_{Y}, C3N2_{L}_{Y}, DC3N2_{L}_{Y})))',
 '(VC2N_{X}_{Y} == Or(And(VC1N_{X}_{Y}, C1N2_{X}_{Y}, DC1N2_{X}_{Y}), (C2N3_{X}_{Y}), And(VC3N_{X}_{Y}, C2N2_{X}_{Y}, Not(DC2N2_{X}_{Y}))))',
 '(VC3N_{X}_{Y} == Or(And(VC2N_{X}_{Y}, C2N2_{X}_{Y}, DC2N2_{X}_{Y}), (C3N3_{X}_{Y}), And(VC1N_{R}_{Y}, C3N2_{X}_{Y}, Not(DC3N2_{X}_{Y}))))',
-'(Not(VC3P_{L}_{Y}))',
-'(Not(VC3O_{L}_{Y}))',
-'(Not(VC3N_{L}_{Y}))',
-'(Not(VC1P_{R}_{Y}))',
-'(Not(VC1N_{R}_{Y}))',
-'(Not(VC1O_{R}_{Y}))',
 '(Implies(And(L32_{X}_{Y}C1L21_{X}_{Y}, DL32_{X}_{Y}C1L21_{X}_{Y}), cntC1L21_{X}_{Y} > cntL32_{X}_{Y}))',
 '(Implies(And(L32_{X}_{Y}C1L21_{X}_{Y}, Not(DL32_{X}_{Y}C1L21_{X}_{Y})), cntL32_{X}_{Y} > cntC1L21_{X}_{Y}))',
 '(Implies(And(L33_{X}_{Y}C1L21_{X}_{Y}, DL33_{X}_{Y}C1L21_{X}_{Y}), cntC1L21_{X}_{Y} > cntL33_{X}_{Y}))',
@@ -1046,8 +1001,94 @@ trapUnitClsTmplt = ['(Implies(L31_{X}_{Y}L41_{X}_{Y}, (L31_{X}_{Y} == L41_{X}_{Y
 '(Implies(C3NV_{X}_{Y}, cntC3L2Z_{X}_{Y} > cntC3O_{X}_{Y}))',
 '(Implies(C3N1_{X}_{Y}, cntC3O_{X}_{Y} > cntC3N_{X}_{Y}))',
 '(Implies(And(C3N2_{X}_{Y}, DC3N2_{X}_{Y}), cntC1N_{R}_{Y} > cntC3N_{X}_{Y}))',
-'(Implies(And(C3N2_{X}_{Y}, Not(DC3N2_{X}_{Y})), cntC3N_{X}_{Y} > cntC1N_{R}_{Y}))',
-'And((minCnt < cntC1L21_{X}_{Y}), (cntC1L21_{X}_{Y} < maxCnt))',
+'(Implies(And(C3N2_{X}_{Y}, Not(DC3N2_{X}_{Y})), cntC3N_{X}_{Y} > cntC1N_{R}_{Y}))']
+
+abvBndClsTmplt = ['(Not(VL41_{X}_{A}))',
+'(Not(VL42_{X}_{A}))',
+'(Not(VL43_{X}_{A}))',
+'(Not(VL44_{X}_{A}))',
+'(Not(VL45_{X}_{A}))',
+'(Not(VL46_{X}_{A}))',
+'(Not(VL47_{X}_{A}))',
+'(Not(VL48_{X}_{A}))',
+'(Not(VL49_{X}_{A}))',
+'(Not(L41_{X}_{A}L41_{X}_{Y}))',
+'(Not(L42_{X}_{A}L42_{X}_{Y}))',
+'(Not(L43_{X}_{A}L43_{X}_{Y}))',
+'(Not(L44_{X}_{A}L44_{X}_{Y}))',
+'(Not(L45_{X}_{A}L45_{X}_{Y}))',
+'(Not(L46_{X}_{A}L46_{X}_{Y}))',
+'(Not(L47_{X}_{A}L47_{X}_{Y}))',
+'(Not(L48_{X}_{A}L48_{X}_{Y}))',
+'(Not(L49_{X}_{A}L49_{X}_{Y}))',]
+
+blwBndClsTmplt = ['(Not(VL41_{X}_{B}))',
+'(Not(VL42_{X}_{B}))',
+'(Not(VL43_{X}_{B}))',
+'(Not(VL44_{X}_{B}))',
+'(Not(VL45_{X}_{B}))',
+'(Not(VL46_{X}_{B}))',
+'(Not(VL47_{X}_{B}))',
+'(Not(VL48_{X}_{B}))',
+'(Not(VL49_{X}_{B}))',
+'(Not(L41_{X}_{Y}L41_{X}_{B}))',
+'(Not(L42_{X}_{Y}L42_{X}_{B}))',
+'(Not(L43_{X}_{Y}L43_{X}_{B}))',
+'(Not(L44_{X}_{Y}L44_{X}_{B}))',
+'(Not(L45_{X}_{Y}L45_{X}_{B}))',
+'(Not(L46_{X}_{Y}L46_{X}_{B}))',
+'(Not(L47_{X}_{Y}L47_{X}_{B}))',
+'(Not(L48_{X}_{Y}L48_{X}_{B}))',
+'(Not(L49_{X}_{Y}L49_{X}_{B}))',]
+
+lBndClsTmplt = ['(Not(VL31_{L}_{Y}))',
+'(Not(VL32_{L}_{Y}))',
+'(Not(VL33_{L}_{Y}))',
+'(Not(VL34_{L}_{Y}))',
+'(Not(VL35_{L}_{Y}))',
+'(Not(VL36_{L}_{Y}))',
+'(Not(VL37_{L}_{Y}))',
+'(Not(VL38_{L}_{Y}))',
+'(Not(VL39_{L}_{Y}))',
+'(Not(L31_{L}_{Y}L31_{X}_{Y}))',
+'(Not(L32_{L}_{Y}L32_{X}_{Y}))',
+'(Not(L33_{L}_{Y}L33_{X}_{Y}))',
+'(Not(L34_{L}_{Y}L34_{X}_{Y}))',
+'(Not(L35_{L}_{Y}L35_{X}_{Y}))',
+'(Not(L36_{L}_{Y}L36_{X}_{Y}))',
+'(Not(L37_{L}_{Y}L37_{X}_{Y}))',
+'(Not(L38_{L}_{Y}L38_{X}_{Y}))',
+'(Not(L39_{L}_{Y}L39_{X}_{Y}))',
+'(C3P2_{L}_{Y})',
+'(Not(C3N2_{L}_{Y}))',
+'(Not(C3NH_{L}_{Y}))',]
+
+rBndClsTmplt = ['(Not(VL31_{R}_{Y}))',
+'(Not(VL32_{R}_{Y}))',
+'(Not(VL33_{R}_{Y}))',
+'(Not(VL34_{R}_{Y}))',
+'(Not(VL35_{R}_{Y}))',
+'(Not(VL36_{R}_{Y}))',
+'(Not(VL37_{R}_{Y}))',
+'(Not(VL38_{R}_{Y}))',
+'(Not(VL39_{R}_{Y}))',
+'(Not(VC1P_{R}_{Y}))',
+'(Not(VC1N_{R}_{Y}))',
+'(Not(VC1O_{R}_{Y}))',
+'(Not(L31_{X}_{Y}L31_{R}_{Y}))',
+'(Not(L32_{X}_{Y}L32_{R}_{Y}))',
+'(Not(L33_{X}_{Y}L33_{R}_{Y}))',
+'(Not(L34_{X}_{Y}L34_{R}_{Y}))',
+'(Not(L35_{X}_{Y}L35_{R}_{Y}))',
+'(Not(L36_{X}_{Y}L36_{R}_{Y}))',
+'(Not(L37_{X}_{Y}L37_{R}_{Y}))',
+'(Not(L38_{X}_{Y}L38_{R}_{Y}))',
+'(Not(L39_{X}_{Y}L39_{R}_{Y}))',
+'(C3P2_{X}_{Y})',
+'(Not(C3N2_{X}_{Y}))',
+'(Not(C3NH_{X}_{Y}))',]
+
+cntBoundClsTmplt = ['And((minCnt < cntC1L21_{X}_{Y}), (cntC1L21_{X}_{Y} < maxCnt))',
 'And((minCnt < cntC1L22_{X}_{Y}), (cntC1L22_{X}_{Y} < maxCnt))',
 'And((minCnt < cntC1L23_{X}_{Y}), (cntC1L23_{X}_{Y} < maxCnt))',
 'And((minCnt < cntC1L2Z_{X}_{Y}), (cntC1L2Z_{X}_{Y} < maxCnt))',
@@ -1077,6 +1118,18 @@ trapUnitClsTmplt = ['(Implies(L31_{X}_{Y}L41_{X}_{Y}, (L31_{X}_{Y} == L41_{X}_{Y
 'And((minCnt < cntL47_{X}_{Y}), (cntL47_{X}_{Y} < maxCnt))',
 'And((minCnt < cntL48_{X}_{Y}), (cntL48_{X}_{Y} < maxCnt))',
 'And((minCnt < cntL49_{X}_{Y}), (cntL49_{X}_{Y} < maxCnt))',
+'And((minCnt < cntC1P_{X}_{Y}), (cntC1P_{X}_{Y} < maxCnt))',
+'And((minCnt < cntC1O_{X}_{Y}), (cntC1O_{X}_{Y} < maxCnt))',
+'And((minCnt < cntC1N_{X}_{Y}), (cntC1N_{X}_{Y} < maxCnt))',
+'And((minCnt < cntC2P_{X}_{Y}), (cntC2P_{X}_{Y} < maxCnt))',
+'And((minCnt < cntC2O_{X}_{Y}), (cntC2O_{X}_{Y} < maxCnt))',
+'And((minCnt < cntC2N_{X}_{Y}), (cntC2N_{X}_{Y} < maxCnt))',
+'And((minCnt < cntC3P_{X}_{Y}), (cntC3P_{X}_{Y} < maxCnt))',
+'And((minCnt < cntC3O_{X}_{Y}), (cntC3O_{X}_{Y} < maxCnt))',
+'And((minCnt < cntC3N_{X}_{Y}), (cntC3N_{X}_{Y} < maxCnt))',
+'And((minCnt < cntC1P_{R}_{Y}), (cntC1P_{R}_{Y} < maxCnt))',
+'And((minCnt < cntC1O_{R}_{Y}), (cntC1O_{R}_{Y} < maxCnt))',
+'And((minCnt < cntC1N_{R}_{Y}), (cntC1N_{R}_{Y} < maxCnt))',
 'Implies(isInpL31_{X}_{Y}, (cntL31_{X}_{Y} == 0))',
 'Implies(isInpL32_{X}_{Y}, (cntL32_{X}_{Y} == 0))',
 'Implies(isInpL33_{X}_{Y}, (cntL33_{X}_{Y} == 0))',
@@ -1094,16 +1147,7 @@ trapUnitClsTmplt = ['(Implies(L31_{X}_{Y}L41_{X}_{Y}, (L31_{X}_{Y} == L41_{X}_{Y
 'Implies(isInpL46_{X}_{Y}, (cntL46_{X}_{Y} == 0))',
 'Implies(isInpL47_{X}_{Y}, (cntL47_{X}_{Y} == 0))',
 'Implies(isInpL48_{X}_{Y}, (cntL48_{X}_{Y} == 0))',
-'Implies(isInpL49_{X}_{Y}, (cntL49_{X}_{Y} == 0))',
-'And((minCnt < cntC1P_{X}_{Y}), (cntC1P_{X}_{Y} < maxCnt))',
-'And((minCnt < cntC1O_{X}_{Y}), (cntC1O_{X}_{Y} < maxCnt))',
-'And((minCnt < cntC1N_{X}_{Y}), (cntC1N_{X}_{Y} < maxCnt))',
-'And((minCnt < cntC2P_{X}_{Y}), (cntC2P_{X}_{Y} < maxCnt))',
-'And((minCnt < cntC2O_{X}_{Y}), (cntC2O_{X}_{Y} < maxCnt))',
-'And((minCnt < cntC2N_{X}_{Y}), (cntC2N_{X}_{Y} < maxCnt))',
-'And((minCnt < cntC3P_{X}_{Y}), (cntC3P_{X}_{Y} < maxCnt))',
-'And((minCnt < cntC3O_{X}_{Y}), (cntC3O_{X}_{Y} < maxCnt))',
-'And((minCnt < cntC3N_{X}_{Y}), (cntC3N_{X}_{Y} < maxCnt))']
+'Implies(isInpL49_{X}_{Y}, (cntL49_{X}_{Y} == 0))']
 
 trapUnitKeyTmplt = ['L31_{X}_{Y}C1L2Z_{X}_{Y}',
 'L31_{X}_{Y}C2L21_{X}_{Y}',
@@ -1306,7 +1350,7 @@ hiZVarMapTmplt = {'L31_{X}_{Y}':'VL31_{X}_{Y}',
 # -------------------------------------------------------------------------------------------------
 # Functions
 # -------------------------------------------------------------------------------------------------
-def writeZ3pl(z3Vars:dict,z3Lines:list,z3Fn:str,append=False,prnt=False) -> int:
+def writeZ3pl(z3Vars:dict,z3Lines:list,z3Fn:str) -> int:
     '''
     Writes or appends a Python Z3 script from a provided list of lines. If append is true, then
     writeZ3pl will read z3fileName and rewrite it, adding in additional clauses from z3Lines. 
@@ -1341,38 +1385,53 @@ def trapFabricBuilder(numRows,numCols,pinMap,outputFn='trapFabricPL',maxCount=No
 
     allVars = {}
     allCls = []
+    cntCls = []
     hiZVarMap = {}
     ioCSVrows = []
     isInp = []
 
-    for i in range(numRows):
+    for i in range(numCols):
         # Left/right boundary conditions to current unit i,j
         if (i-1) < 0:
             l = 'L'
         else:
             l = i-1
-        if (i+1) >= numRows:
+        if (i+1) >= numCols:
             r = 'R'
         else:
             r = i+1
-        for j in range(numCols):
+        for j in range(numRows):
             #Above/below boundary conditions to current unit i,j
             if (j-1) < 0:
                 a = 'A'
             else:
                 a = j-1
-            if (j+1) >= numCols:
+            if (j+1) >= numRows:
                 b = 'B'
             else:
                 b = j+1
-            for k,kType in trapUnitVarTmplt.items():
+            for k,kType in trapUnitVarTmplt.items():    # Format & add variables to variable list
                 allVars[k.format(X=i,Y=j,A=a,B=b,L=l,R=r)] = kType
-            for k in trapUnitClsTmplt:
+            for k in trapUnitClsTmplt:                  # Format & add clauses to clause list
                 allCls.append(k.format(X=i,Y=j,A=a,B=b,L=l,R=r))
-            for k in trapUnitKeyTmplt:
+            for k in cntBoundClsTmplt:                  # Format & add clauses to count clause list
+                cntCls.append(k.format(X=i,Y=j,A=a,B=b,L=l,R=r))
+            for k in trapUnitKeyTmplt:                  # Format & register key inputs with I/O CSV
                 ioCSVrows.append([k.format(X=i,Y=j,A=a,B=b,L=l,R=r),'key'])
-            for k,kHiZ in hiZVarMapTmplt.items():
+            for k,kHiZ in hiZVarMapTmplt.items():       # Format & expand map for hiZ variables with corresponding logical values (wires)
                 hiZVarMap[k.format(X=i,Y=j)] = kHiZ.format(X=i,Y=j)
+            if (i-1) < 0:                               # Include left/right boundary conditions in clause list
+                for k in lBndClsTmplt:
+                    allCls.append(k.format(X=i,Y=j,A=a,B=b,L=l,R=r))
+            if (i+1) >= numCols:
+                for k in rBndClsTmplt:
+                    allCls.append(k.format(X=i,Y=j,A=a,B=b,L=l,R=r))
+            if (j-1) < 0:                               # Include up/down boundary conditions in clause list
+                for k in abvBndClsTmplt:
+                    allCls.append(k.format(X=i,Y=j,A=a,B=b,L=l,R=r))
+            if (j+1) >= numRows:
+                for k in blwBndClsTmplt:
+                    allCls.append(k.format(X=i,Y=j,A=a,B=b,L=l,R=r))
 
     # Add I/O pin connection clauses to PL model & the I/O CSV
     with open(pinMap,'r') as f:
@@ -1402,6 +1461,7 @@ def trapFabricBuilder(numRows,numCols,pinMap,outputFn='trapFabricPL',maxCount=No
             allCls.append(f'Not(isInp{k})')
     if maxCount is not None:
         allCls.extend(['minCnt == -1',f'maxCnt == {maxCount+1}'])
+        allCls.extend(cntCls)
         allVars['minCnt'] = ('Int',None)
         allVars['maxCnt'] = ('Int',None)
 
