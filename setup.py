@@ -31,8 +31,8 @@ setuptools.setup(
         "Operating System :: POSIX :: Linux",
     ],
     install_requires=[
-    'z3-solver',
-    'python-apt'],
+    'z3-solver'],
+    #'python-apt'],         # Removed from requirements cause installing this is buggy and it's only used to catch run errors anyways
     packages=setuptools.find_packages(),
     python_requires='>=3.6',
     entry_points={
