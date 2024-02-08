@@ -3,7 +3,7 @@ Anonymous repo for TRANSAT
 
 ## Installation
 
-Use the package manager [pip](https://pip.pypa.io/en/stable/) to install STRAPT, or contact for the package.
+Use the package manager [pip](https://pip.pypa.io/en/stable/) to install TRANSAT, or contact for the package.
 
 ```bash
 pip3 install strapt
