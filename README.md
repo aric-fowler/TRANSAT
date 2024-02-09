@@ -7,7 +7,7 @@ logic-locked circuits.
 
 ## Installation
 
-Use the package manager [pip](https://pip.pypa.io/en/stable/) to install TRANSAT, or contact Aric Fowler for the package.
+Use the package manager [pip](https://pip.pypa.io/en/stable/) to install TRANSAT, or contact [Aric](aric.fowler@utdallas.edu) for the package.
 
 ```bash
 pip3 install transat
