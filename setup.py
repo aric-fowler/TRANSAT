@@ -5,7 +5,7 @@ https://packaging.python.org/en/latest/tutorials/packaging-projects/
 
 Author:     Aric Fowler
 Python:     3.10.12
-Updated:    Nov 2022
+Updated:    Feb 2024
 '''
 import setuptools
 
@@ -13,11 +13,11 @@ with open('README.md','r',encoding='utf-8') as fhand:
     long_description = fhand.read()
 
 setuptools.setup(
-    name='strapt',
+    name='transat',
     version='0.1.1',
     author='Aric Fowler',
     author_email='aric.fowler@utdallas.edu',
-    description='STRAPT is a set of SAT tools for solving the University of Texas - Dallas TRAP circuit technology, built around the Microsoft Z3 SMT solver.',
+    description='TRANSAT is a set of SAT tools for solving the transistor-level circuit technologies, built around the Microsoft Z3 SMT solver.',
     long_description=long_description,
     long_description_context_type='text/markdown',
     url="https://github.com/aric-fowler/STRAPT",

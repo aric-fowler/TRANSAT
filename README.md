@@ -1,17 +1,16 @@
-# STRAPT
+# TRANSAT
 
-STRAPT, or "Satisfiability TRAP Tools", is a Python library for launching SAT-related functions on the Univesity 
-of Texas - Dallas TRAP TRAnsistor-level Programmable fabric (TRAP) technology. These functions include SAT attacks, 
-SAT-based routing, and SAT-based synthesis. While TRAP is a transistor-level approach to 
-implementing logic functions, these tools should be able to be extended to other types of logic
-circuits, including logic-locked circuits (results may vary).
+TRANSAT, or "Transistor-Level SAT Tools", is a Python library for launching SAT-related functions 
+on digital circuits implemented on the transistor level. These functions include SAT attacks and
+SAT-based verification. These tools can be extended to other types of logic circuits, including 
+logic-locked circuits.
 
 ## Installation
 
-Use the package manager [pip](https://pip.pypa.io/en/stable/) to install STRAPT, or contact [Aric](aric.fowler@utdallas.edu) for the package.
+Use the package manager [pip](https://pip.pypa.io/en/stable/) to install TRANSAT, or contact [Aric](aric.fowler@utdallas.edu) for the package.
 
 ```bash
-pip3 install strapt
+pip3 install transat
 ```
 
 ## Usage
@@ -36,7 +35,7 @@ satVerify plEncryptedFile plFunctionFile ioCSV keyValueCSV
 ### Within Python:
 ```python
 # SAT attack:
-from strapt import satAttack
+from transat import satAttack
 
 satAttack(plLogicFile,inputList,keyList,outputList,oracleNetlist,oracleName)
 ```

@@ -23,7 +23,7 @@ from z3 import *
 # -------------------------------------------------------------------------------------------------
 # Globals
 # -------------------------------------------------------------------------------------------------
-from .globals import *       # STRAPT common global variables
+from .globals import *       # TRANSAT common global variables
 logName = 'satVerify'
 miterName = 'verMiter'
 miterSuffix = '_m'

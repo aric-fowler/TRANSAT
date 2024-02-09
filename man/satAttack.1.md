@@ -3,11 +3,11 @@ title: SATATTACK
 section: 1
 header: User Manual
 footer: satAttack 0.1.1
-date: November 13, 2023
+date: February 8, 2024
 ---
 
 # NAME
-satAttack - A SAT attack program, developed for launching SAT attacks on UTD's TRAnsistor-level Programmable (TRAP) fabric.
+satAttack - A SAT attack program, developed for launching SAT attacks on transistor-level circuits.
 
 # SYNOPSIS
 **satAttack** [*OPTION*] plLogicFile ioCSV oracleNetlist topLevelModule

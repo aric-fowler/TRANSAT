@@ -1,31 +1,3 @@
 [build-system]
-#requires = ["hatchling"]
-#build-backend = "hatchling.build"
 requires = ["setuptools>=42"]
 build-backend = "setuptools.build_meta"
-
-#[project]
-#name = "strapt"
-#version = "0.1.0"
-#authors = [
-#    {name = "Aric Fowler", email = "aric.fowler@utdallas.edu"}
-#]
-#description = "STRAPT is a set of SAT tools for solving the University of Texas - Dallas TRAP circuit technology, built around the Microsoft Z3 SMT solver."
-#readme = "README.md"
-#requires-python = ">=3.10"
-
-#classifiers = [
-#    "Programming Language :: Python :: 3",
-#    "License :: OSI Approved :: GNU General Public License v3 (GPLv3)",
-#    "Operating System :: POSIX :: Linux"
-#]
-#dependencies = [
-#    "z3-solver >=4.12.1.0",
-#    "python-apt"
-#]
-
-#[project.urls]
-#homepage = "https://cometmail.sharepoint.com/sites/ECETRAP-SecurityAnalysis/Shared%20Documents/Forms/AllItems.aspx?FolderCTID=0x0120005DC35724679FFA43B3870ABD93481C76&id=%2Fsites%2FECETRAP%2DSecurityAnalysis%2FShared%20Documents%2FSecurity%20Analysis%2FIn%2DHouse%20SAT%20Tools%2FSAT%5FAttack%5Fv2&viewid=bed26541%2D81f2%2D4c77%2D9fae%2D5d41a0958767"
-
-#[project.scripts]
-#satAttack = "strapt.satAttack_cli:main"

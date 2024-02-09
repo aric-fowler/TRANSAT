@@ -3,11 +3,11 @@ title: SATVERIFY
 section: 1
 header: User Manual
 footer: satVerify 0.1.1
-date: November 3, 2023
+date: February 8, 2024
 ---
 
 # NAME
-satVerify - A SAT-based verification program, developed for verifying programming bitstreams for UTD's TRAnsistor-level Programmable (TRAP) fabric.
+satVerify - A SAT-based verification program, developed for verifying programming bitstreams transistor-level circuits.
 
 # SYNOPSIS
 **satVerify** [*OPTION*] plEncryptedFile plFunctionFile ioCSV keyValueCSV

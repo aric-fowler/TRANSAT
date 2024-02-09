@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 '''
-Script for writing Z3-based propositional logic clauses of the 
-University of Texas - Dallas TRAP circuit architecture.
+Script for writing Z3-based propositional logic clauses of the TRAP circuit architecture.
 
 Author:     Aric Fowler
 Python:     3.10.6
-Updated:    Nov 2023
+Updated:    Feb 2024
 '''
 import os
 import csv
@@ -15,7 +14,7 @@ from z3 import *
 # -------------------------------------------------------------------------------------------------
 # Globals
 # -------------------------------------------------------------------------------------------------
-from .globals import *       # STRAPT common global variables
+from .globals import *       # TRANSAT common global variables
 
 trapUnitVarTmplt = {'C1L21_{X}_{Y}':('Bool',None),
 'C1L22_{X}_{Y}':('Bool',None),

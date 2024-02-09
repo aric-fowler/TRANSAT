@@ -1,9 +1,9 @@
 '''
-Global variables shared between all STRAPT Tools
+Global variables shared between all TRANSAT Tools
 
 Author:     Aric Fowler
 Python:     3.10.12
-Updated:    Nov 2023
+Updated:    Feb 2024
 '''
 import os
 import datetime
