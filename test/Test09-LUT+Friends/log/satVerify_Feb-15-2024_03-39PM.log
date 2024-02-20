@@ -1,0 +1,16 @@
+Feb-15-2024_03-39PM INFO: SAT attack script called at: 2024-02-15 15:39:07.425969
+
+Feb-15-2024_03-39PM INFO: Target PL file: lutWithLogic.py
+
+Feb-15-2024_03-39PM INFO: Output directories created.
+
+Feb-15-2024_03-39PM WARNING: Code does not currently support cross-checking I/O names found in text lists against netlist files. Please check manually.
+
+Feb-15-2024_03-39PM INFO: Creating SAT verification script, here: /home/axf190026/Projects/TRAP/Security/SAT_Tools_v2/test/Test09-LUT+Friends/work/verMiter.py
+
+Feb-15-2024_03-39PM INFO: Running SAT verification script...
+
+Feb-15-2024_03-39PM INFO: Verification successful! Programmed circuit works correctly for all input patterns.
+
+Feb-15-2024_03-39PM INFO: satVerify.py concluded. Total runtime: 0:00:00.048817 seconds
+

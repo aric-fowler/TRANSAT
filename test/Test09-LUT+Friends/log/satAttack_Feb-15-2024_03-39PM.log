@@ -1,0 +1,24 @@
+Feb-15-2024_03-39PM INFO: SAT attack script called at: 2024-02-15 15:39:06.683126
+
+Feb-15-2024_03-39PM INFO: Target PL file: lutWithLogic.py
+
+Feb-15-2024_03-39PM INFO: Output directories created.
+
+Feb-15-2024_03-39PM WARNING: Code does not currently support cross-checking I/O names found in text lists against netlist files. Please check manually.
+
+Feb-15-2024_03-39PM INFO: Miter logic successfully created. Miter CNF located at: /home/axf190026/Projects/TRAP/Security/SAT_Tools_v2/test/Test09-LUT+Friends/work/miter.py
+
+Feb-15-2024_03-39PM INFO: Miter circuit SATISFIED at round #1. Extracted DIP: {'a': False, 'b': False, 'c': True}
+
+Feb-15-2024_03-39PM INFO: Miter circuit SATISFIED at round #2. Extracted DIP: {'a': False, 'b': False, 'c': False}
+
+Feb-15-2024_03-39PM INFO: Miter circuit SATISFIED at round #3. Extracted DIP: {'a': False, 'b': True, 'c': True}
+
+Feb-15-2024_03-39PM INFO: Miter circuit SATISFIED at round #4. Extracted DIP: {'a': False, 'b': True, 'c': False}
+
+Feb-15-2024_03-39PM INFO: Miter circuit UNSATISFIED at round #5
+
+Feb-15-2024_03-39PM INFO: Key extracted successfully to: /home/axf190026/Projects/TRAP/Security/SAT_Tools_v2/test/Test09-LUT+Friends/work/extracted_key.csv
+
+Feb-15-2024_03-39PM INFO: satAttack.py concluded. Total runtime: 0:00:00.438864 seconds
+
