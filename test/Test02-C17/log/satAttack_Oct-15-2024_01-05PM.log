@@ -1,0 +1,22 @@
+Oct-15-2024_01-05PM INFO: SAT attack script called at: 2024-10-15 13:05:06.144178
+
+Oct-15-2024_01-05PM INFO: Target PL file: encryptC17pl.py
+
+Oct-15-2024_01-05PM INFO: Output directories created.
+
+Oct-15-2024_01-05PM WARNING: Code does not currently support cross-checking I/O names found in text lists against netlist files. Please check manually.
+
+Oct-15-2024_01-05PM INFO: Miter logic successfully created and located at: /home/axf190026/Projects/TRAP/Security/SAT_Tools_v2/test/Test02-C17/work/miter.py
+
+Oct-15-2024_01-05PM INFO: Miter circuit SATISFIED at round #1. Extracted DIP: {'pi1': False, 'pi2': True, 'pi3': True, 'pi6': True, 'pi7': False}
+
+Oct-15-2024_01-05PM INFO: Miter circuit SATISFIED at round #2. Extracted DIP: {'pi1': True, 'pi2': False, 'pi3': False, 'pi6': True, 'pi7': False}
+
+Oct-15-2024_01-05PM INFO: Miter circuit SATISFIED at round #3. Extracted DIP: {'pi1': True, 'pi2': True, 'pi3': False, 'pi6': True, 'pi7': False}
+
+Oct-15-2024_01-05PM INFO: Miter circuit UNSATISFIED at round #4.
+
+Oct-15-2024_01-05PM INFO: Key extracted successfully to: /home/axf190026/Projects/TRAP/Security/SAT_Tools_v2/test/Test02-C17/work/extracted_key.csv
+
+Oct-15-2024_01-05PM INFO: satAttack.py concluded. Total runtime: 0:00:00.492690 seconds
+

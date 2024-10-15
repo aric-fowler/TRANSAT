@@ -15,13 +15,14 @@ def main():
     parser.add_argument('-e','--disableEarlyTermination',default=True,action='store_false',help='By default, skips the final (UNSAT) round of the attack if all possible inputs are explored as DIPs. Enable flag to go through final round regardless')
     parser.add_argument('-d','--debug',default=False,action='store_true',help='Creates intermediate scripts in a "debug" directory, for the purposes of troubleshooting when an attack goes awry')
     parser.add_argument('-f','--fresh',default=False,action='store_true',help='Create fresh directories for SAT attack. WARNING: deletes preexisting logs and outputs')
+    parser.add_argument('-o','--oracleType',default=True,action='store_false',help='In cases where a circuit can express tri-state outputs, this indicates if the oracle can express HiZ outputs. Setting the flag indicates that the oracle cannot express HiZ outputs.')
     parser.add_argument('-p','--pythonOracle',default=False,action='store_true',help='If true, oraclenetlist points to a Python oracle file (alternative to using iVerilog). Oracle function must be declared as "main", and all input variable names must coincide with inputList')
     parser.add_argument('-q','--quiet',default=False,action='store_true',help='Prevent printing of SAT attack progress to terminal')
+    parser.add_argument('-r','--recover',default=None,action='store',dest='recMiterFn',help='Set this flag and point to a running miter file (likely in a work/ directory)')
     parser.add_argument('-z','--tristate',default=False,action='store_true',help='Enables "tri-state" mode for circuit outputs. High-impedance mode considers situations where an output may exhibit tri-state behavior and its associated logic value may be invalid. The correlating tri-state variable name must be listed after the "output" type in the ioCSV file')
-    clArgs=parser.parse_args()
+    clArgs = parser.parse_args()
 
-    satAttack(clArgs.plLogicFile,clArgs.ioCSV,clArgs.oracleNetlist,clArgs.topModule,clArgs.disableEarlyTermination,clArgs.fresh,clArgs.pythonOracle,clArgs.debug,clArgs.quiet,clArgs.tristate)
-
+    satAttack(clArgs.plLogicFile,clArgs.ioCSV,clArgs.oracleNetlist,clArgs.topModule,clArgs.disableEarlyTermination,clArgs.fresh,clArgs.oracleType,clArgs.pythonOracle,clArgs.debug,clArgs.quiet,clArgs.recMiterFn,clArgs.tristate)
 
 if __name__ == '__main__':
     exit(main())

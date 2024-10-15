@@ -1439,7 +1439,7 @@ hiZVarMapTmplt = {'L31_{X}_{Y}':'VL31_{X}_{Y}',
 # -------------------------------------------------------------------------------------------------
 # Functions
 # -------------------------------------------------------------------------------------------------
-def writeZ3pl(z3Vars:dict,z3Lines:list,z3Fn:str) -> int:
+def writeZ3pl(z3Vars:dict,z3Lines:list,z3Fn:str,prnt:bool) -> int:
     '''
     Writes or appends a Python Z3 script from a provided list of lines. If append is true, then
     writeZ3pl will read z3fileName and rewrite it, adding in additional clauses from z3Lines. 
@@ -1453,6 +1453,8 @@ def writeZ3pl(z3Vars:dict,z3Lines:list,z3Fn:str) -> int:
 
     with open(z3Fn,'w') as f:
         f.write('from z3 import *\n')
+        # if print:
+        #     f.write("set_option('verbose','10')")
         f.write('\n\ndef main():\n')
         for var,varAtts in z3Vars.items():     # If the variable declaration requires arguments...
             if varAtts[1] is not None:
@@ -1468,7 +1470,7 @@ def writeZ3pl(z3Vars:dict,z3Lines:list,z3Fn:str) -> int:
     return 0
 
 
-def trapFabricBuilder(numRows,numCols,pinMap,outputFn='trapFabricPL',maxCount=None):
+def trapFabricBuilder(numRows,numCols,pinMap,debug=False,outputFn='trapFabricPL',maxCount=None):
 
     print(f'Executing {os.path.basename(__file__)}...')
 
@@ -1555,7 +1557,7 @@ def trapFabricBuilder(numRows,numCols,pinMap,outputFn='trapFabricPL',maxCount=No
         allVars['maxCnt'] = ('Int',None)
 
     # Write TRAP logic model Python file
-    writeZ3pl(allVars,allCls,f'{outputFn}.py')
+    writeZ3pl(allVars,allCls,f'{outputFn}.py',prnt=debug)
 
     # Write text file containing all key variables for output fabric Python file
     with open(f'{outputFn}_io.csv','w') as f:
@@ -1572,8 +1574,9 @@ if __name__ == '__main__':
     parser.add_argument('numRows',type=int,help='The number of rows of TRAP units for the output fabric. Minimum value is 1')
     parser.add_argument('numCols',type=int,help='The number of columns of TRAP units for the output fabric. Minimum value is 1')
     parser.add_argument('pinMap',type=str,help='Path to the comma-delimited CSV file containing a list of I/O pin names, the corresponding L3 or L4 wire they are placed on, and whether the pin is an input or an output')
+    parser.add_argument('-d',action='store_true',dest='debug',default=False,help='Puts verbosity in Z3 output scripts for SMT readout')
     parser.add_argument('-m',action='store',dest='maxCount',default=None,type=int,help='The maximum allotted value for count variables. A lower number may speed up SAT solver times, but could overconstrain the output model. The count will be constrained only if this variable is set')
     parser.add_argument('-o',action='store',dest='outputFileName',default='trapFabricPL',type=str,help='Base name of output files (no extension) to be created in the current directory')
-    clArgs=parser.parse_args()
+    clArgs = parser.parse_args()
 
-    trapFabricBuilder(clArgs.numRows,clArgs.numCols,clArgs.pinMap,clArgs.outputFileName,clArgs.maxCount)
+    trapFabricBuilder(clArgs.numRows,clArgs.numCols,clArgs.pinMap,clArgs.debug,clArgs.outputFileName,clArgs.maxCount)

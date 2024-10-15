@@ -1,0 +1,18 @@
+Oct-15-2024_01-05PM INFO: SAT attack script called at: 2024-10-15 13:05:07.296977
+
+Oct-15-2024_01-05PM INFO: Target encrypted Verilog file: c17Locked.v
+
+Oct-15-2024_01-05PM WARNING: This attack is meant for the purposes of comparison to the "standard" Z3-based attack included in this package. Please use the Z3 attack for fastest times.
+
+Oct-15-2024_01-05PM INFO: Miter circuit SATISFIED at round #1. Extracted DIP: {'pi1': '0', 'pi2': '0', 'pi3': '0', 'pi6': '0', 'pi7': '0'}
+
+Oct-15-2024_01-05PM INFO: Miter circuit SATISFIED at round #2. Extracted DIP: {'pi1': '0', 'pi2': '1', 'pi3': '0', 'pi6': '0', 'pi7': '0'}
+
+Oct-15-2024_01-05PM INFO: Miter circuit SATISFIED at round #3. Extracted DIP: {'pi1': '0', 'pi2': '0', 'pi3': '0', 'pi6': '0', 'pi7': '1'}
+
+Oct-15-2024_01-05PM INFO: Miter circuit SATISFIED at round #4. Extracted DIP: {'pi1': '0', 'pi2': '0', 'pi3': '1', 'pi6': '1', 'pi7': '0'}
+
+Oct-15-2024_01-05PM INFO: Miter circuit UNSATISFIED at round #5.
+
+Oct-15-2024_01-05PM INFO: SAT attack completed. Extracted key: {'k0': '0', 'k1': '0', 'k2': '0', 'k3': '0'}
+

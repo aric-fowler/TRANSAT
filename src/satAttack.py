@@ -31,7 +31,7 @@ dipCircuitsName = 'dipCircuits'
 tbName = 'tb.v'
 tbOutputFile = 'vOut'
 
-miterFile = os.path.join(here,workDir) + miterName + '.py'
+defMiterFile = os.path.join(here,workDir) + miterName + '.py'
 dipCircuitsFile = os.path.join(here,workDir) + dipCircuitsName + '.py'
 tb = os.path.join(here,workDir) + tbName
 extractedKeyCSV = os.path.join(here,workDir) + 'extracted_key.csv'
@@ -160,7 +160,7 @@ def setup(plLogicFile,fresh,pythonOracle,quiet,debug):
                 print('iVerilog was installed correctly. Proceeding with SAT attack...\n')
 
 
-def readZ3pl(trgtZ3:str) -> Tuple[dict,dict,list]:
+def readZ3pl(trgtZ3:str) -> Tuple[dict,list]:
     '''
     Read a Python Z3 script and parse the variable and function declarations, leaving out any 
     comment lines or Z3 Solver information. Returns dict of variables and their corresponding
@@ -230,9 +230,9 @@ def writeZ3pl(z3Vars:dict,z3Lines:list,z3Fn:str,append=False,prnt=False) -> int:
             clauseIndList.append(f'c{i}')
             f.write(f'\t{clauseIndList[i]} = {line}\n')
         if not prnt:
-            f.write(f"\n\ts = Solver()\n\ts.add({','.join(clauseIndList)})\n\ttry:\n\t\treturn s.check(), s.model()\n\texcept:\n\t\treturn s.check(), None\n\n\nif __name__ == '__main__':\n\tmain()")
+            f.write(f"\n\ts = Solver()\n\ts.add({','.join(clauseIndList)})\n\ttry:\n\t\treturn s.check(), s.model()\n\texcept:\n\t\treturn s.check(), None\n\n\nif __name__ == '__main__':\n\tmain()\n")
         else:
-            f.write(f"\n\ts = Solver()\n\ts.add({','.join(clauseIndList)})\n\twith open('{z3Fn}.txt','w') as f:\n\t\tf.write(str(s.check())+'\\n\\n')\n\t\ttry:\n\t\t\tm = s.model()\n\t\t\tfor item in sorted([(d, m[d]) for d in m], key = lambda x: str(x[0])):\n\t\t\t\tf.write(str(item)+'\\n')\n\t\texcept:\n\t\t\tNone\n\n\nif __name__ == '__main__':\n\tmain()")
+            f.write(f"\n\ts = Solver()\n\ts.add({','.join(clauseIndList)})\n\twith open('{z3Fn}.txt','w') as f:\n\t\tf.write(str(s.check())+'\\n\\n')\n\t\ttry:\n\t\t\tfor item in sorted([(d, s.model()[d]) for d in s.model()], key = lambda x: str(x[0])):\n\t\t\t\tf.write(str(item)+'\\n')\n\t\texcept:\n\t\t\tNone\n\ttry:\n\t\treturn s.check(), s.model()\n\texcept:\n\t\treturn s.check(), None\n\n\nif __name__ == '__main__':\n\tmain()\n")
  
     return 0
 
@@ -250,7 +250,7 @@ def m2dict(model:z3.Model) -> dict:
     return z3Dict
 
 
-def copyCircuit(plClauses:list,allVars:dict,inList:list,keyList:list,outList:list,suffix='',modIns=True,modKeys=True,modOuts=True,modNets=True) -> Tuple[dict,list]:
+def copyCircuit(plClauses:list,allVars:dict,inList:list,keyList:list,outList:list,suffix='',modIns=True,modKeys=True,modOuts=True,modNets=True) -> Tuple[list,dict]:
     '''
     Create a copy of some lines of PL clauses, and modify the end suffixes of variables. If using
     this function multiple times on the same plClauses, be sure that you modify the nets in the 
@@ -287,11 +287,11 @@ def copyCircuit(plClauses:list,allVars:dict,inList:list,keyList:list,outList:lis
     return clauses,clauseVars
 
 
-def buildMiter(trgtPL:str,inVars:list,keyVars:list,outVars:list,miterFile:str,mSuff='_m',hiZVars={}):
+def buildMiter(trgtPL:str,inVars:list,keyVars:list,outVars:list,miterFile:str,mSuff='_m',hiZVars={},hiZOracle=True,debug=False):
     '''
-    Create miter circuit for a given input CNF file. Returns a list of input variable names and a list key variable names for convenience.
+    Create miter circuit for a given input Z3Py file. Returns a list of input variable names and a list key variable names for convenience.
 
-    targetPL    - Path to Z3 Python file containing PL clauses to create a miter circuit out of
+    trgtPL      - Path to Z3 Python file containing PL clauses to create a miter circuit out of
     inVars      - List of variables designated as inputs in targetPL
     keyVars     - List of variables designated as key inputs in targetPL
     outVars     - List of variables designated as outputs in targetPL
@@ -311,28 +311,42 @@ def buildMiter(trgtPL:str,inVars:list,keyVars:list,outVars:list,miterFile:str,mS
         miterVars = miterVars | {k:v for k,v in copyVars.items() if k not in miterClauses}
         miterClauses.extend(copy)
 
-    # "BLUE" miter circuit - for all output pairs, at least one logical pair must differ with at least one
-    # of the two corresponding hiZ variables being true.
+    # Make the miter comparator
     outSubclauses = []
-    if hiZVars != {}:
+    if hiZVars == {}:
+        # Traditional comparator
+        for var in outVars:
+                outSubclauses.append(f'Xor({var+mSuff+"1"},{var+mSuff+"2"})')
+    elif hiZOracle:
+        # "BLUE" miter comparator - for all output pairs, at least one logical pair must differ with at least one
+        # of the two corresponding hiZ variables being true.
         for outVar, hiZVar in hiZVars.items():
             outSubclauses.append(f'And(Xor({outVar+mSuff+"1"},{outVar+mSuff+"2"}),Or({hiZVar+mSuff+"1"},{hiZVar+mSuff+"2"}))')
+        
+        # "GREEN" miter comparator - for all output pairs, at least one logical pair must differ with both of those
+        # valids being valid, or the validity variables of the one output pair must differ
+        # for outVar, hiZVar in hiZVars.items():
+        #     outSubclauses.append(f'And(Xor({outVar+mSuff+"1"},{outVar+mSuff+"2"}),And({hiZVar+mSuff+"1"},{hiZVar+mSuff+"2"}))')
+        #     outSubclauses.append(f'Xor({hiZVar+mSuff+"1"},{hiZVar+mSuff+"2"})')
     else:
-        for var in outVars:
-            outSubclauses.append(f'Xor({var+mSuff+"1"},{var+mSuff+"2"})')
-    miterClauses.append(f'Or({",".join(outSubclauses)})     # Miter circuit')
+        # "BLACK" miter comparator - for all output pairs, at least one logical pair must differ or at least one the 
+        # validity variables that output pair must be false (works only when the oracle cannot express HiZ outputs but the netlist can)
+        for outVar, hiZVar in hiZVars.items():
+            outSubclauses.append(f'Not(And(Not(Xor({outVar+mSuff+"1"},{outVar+mSuff+"2"})),{hiZVar+mSuff+"1"},{hiZVar+mSuff+"2"}))')
+    miterClauses.append(f'Or({",".join(outSubclauses)})     # Miter comparator')
 
-    writeZ3pl(miterVars,miterClauses,miterFile)
+    writeZ3pl(miterVars,miterClauses,miterFile,prnt=debug)
 
 
-def runSAT(trgtZ3:str,voi=[]) -> Tuple[bool,list]:
+def runZ3(trgtZ3:str,voi=[]) -> Tuple[bool,dict]:
     '''
     Run target Z3 file. Target file should contain all code necessary to run itself and return a
     SAT/UNSAT decision. If SAT, it should also return a list of values for variables of interest.
     Returns True if the SAT solver returns SAT (satisfied).
 
     trgtZ3      - Name Python module (file name with no ".py") containing PL clauses
-    voi         - "Variables of interest": a list of all variable names you desire to be returned.
+    voi         - "Variables of interest": a list of all variable names you desire to be returned. If
+                    left blank, all variables are returned
     '''
 
     # Import trgtZ3
@@ -586,18 +600,18 @@ def appendMiter(copyTrgt:str,DIP:dict,oracleOut:dict,inVars:list,keyVars:list,ou
             coupleCopy.append(f'{var}{suff}_1 == True')
             coupleCopy.append(f'{var}{suff}_2 == True')
 
-    writeZ3pl(coupleVars,coupleCopy,miterFile,append=True)
+    writeZ3pl(coupleVars,coupleCopy,miterFile,append=True,prnt=debug)
 
 
-def appendDIPCircuit(trgtPL:str,DIP:dict,oracleOut:list,inVars:list,keyVars:list,outVars:list,DIPCircuitFile:str,suff:str,tsVars={}):
+def appendDIPCircuit(trgtPL:str,DIP:dict,oracleOut:list,inVars:list,keyVars:list,outVars:list,DIPCircuitFile:str,suff:str,tsVars={},debug=False):
     '''
     Append a circuit copy with specific I/O to a running file to be solved when all DIPs have been found. If the 
     file does not exist, it is created.
 
-    targetPL        - Filepath to CNF file containing clauses of a circuit to be copied
+    trgtPL          - Filepath to CNF file containing clauses of a circuit to be copied
     DIP             - Contains input literals
     oracleOut       - Contains output literals corresponding to input literals
-    DIPCircuitFile  - String. Filepath to file to append circuit copy to
+    DIPCircuitFile  - Filepath to file to append circuit copy to
     '''
     # Read in PL
     plVars,plClauses = readZ3pl(trgtPL)
@@ -620,14 +634,56 @@ def appendDIPCircuit(trgtPL:str,DIP:dict,oracleOut:list,inVars:list,keyVars:list
     if os.path.exists(DIPCircuitFile):
         writeZ3pl(DIPcopyVars,DIPcopy,DIPCircuitFile,append=True)
     else:
-        writeZ3pl(DIPcopyVars,DIPcopy,DIPCircuitFile)
+        writeZ3pl(DIPcopyVars,DIPcopy,DIPCircuitFile,prnt=debug)
 
 
-def satAttack(plLogicFile:str,ioCSV:str,oracleNetlist:str,topModule:str,noEarlyTermination=False,fresh=False,pythonOracle=False,debug=False,quiet=False,highImpedance=False):
+def createDIPCircuit(trgtPL:str,DIPs:list,oracleOuts:list,inVars:list,keyVars:list,outVars:list,DIPCircuitFile:str,tsVars={},debug=False):
+    '''
+    Append a circuit copy with specific I/O to a running file to be solved when all DIPs have been found. If the 
+    file does not exist, it is created.
 
-    # Run argument parsing, directory creation, and logging setup
+    trgtPL          - Filepath to CNF file containing clauses of a circuit to be copied
+    DIP             - List of DIPs from attack rounds, where DIPs are stored as dicts
+    oracleOut       - List of output patterns corresponding to input literals from attack rounds, where patterns are stored as dicts
+    DIPCircuitFile  - Filepath to Python file containing all circuit copies.
+    '''
+    # Read in PL
+    plVars,plClauses = readZ3pl(trgtPL)
+
+    copiesClauses = []
+    copiesVars = {}
+    for rnd,(DIP,outVec) in enumerate(zip(DIPs,oracleOuts)):
+        suff=f'_cp{rnd}'
+        # Make unique circuit copy with common key inputs
+        DIPcopy, DIPcopyVars = copyCircuit(plClauses,plVars,inVars,keyVars,outVars,suffix=suff,modKeys=False)
+
+        # Assign I/O
+        ioList = DIP | outVec
+        for var,val in ioList.items():
+            if val == True:
+                DIPcopy.append(f'{var}{suff} == True')
+            elif val == False:
+                DIPcopy.append(f'{var}{suff} == False')
+        if tsVars != {}:      # NOTE: these lines need to be changed if hiZ is an expected output from the oracle
+            for var in tsVars.values():
+                DIPcopy.append(f'{var}{suff} == True')
+
+        copiesClauses.extend(DIPcopy)
+        copiesVars = copiesVars | DIPcopyVars
+
+    writeZ3pl(copiesVars,copiesClauses,DIPCircuitFile,prnt=debug)
+
+
+def satAttack(plLogicFile:str,ioCSV:str,oracleNetlist:str,topModule:str,noEarlyTermination=False,fresh=False,hiZOracle=True,pythonOracle=False,debug=False,quiet=False,recMiterFn=None,highImpedance=False):
+
+    # Run argument parsing, directory creation, variable identification, and logging setup
     startTime = datetime.datetime.now()
-    setup(plLogicFile,fresh,pythonOracle,quiet,debug)
+    if recMiterFn == None:
+        setup(plLogicFile,fresh,pythonOracle,quiet,debug)
+    else:   # Recovery mode
+        print('Running SAT attack in recovery mode. See log for more details.')
+        fresh = False
+        setup(plLogicFile,fresh,pythonOracle,quiet,debug)
 
     inVars = []
     keyVars = []
@@ -651,14 +707,19 @@ def satAttack(plLogicFile:str,ioCSV:str,oracleNetlist:str,topModule:str,noEarlyT
                 outVars.append(ioNm)
             else:
                 raise RuntimeError(f'I/O {ioNm} has unrecognized data type "{ioAtts[0]}". Please revise I/O file {ioCSV}')
-
-    # Create miter circuit
-    buildMiter(plLogicFile,inVars,keyVars,outVars,miterFile,mSuff=miterSuffix,hiZVars=hiZVars)
-    logging.info(f'Miter logic successfully created. Miter CNF located at: {miterFile}')
+    
+    if recMiterFn == None:  # Create miter circuit
+        miterFile = defMiterFile
+        buildMiter(plLogicFile,inVars,keyVars,outVars,miterFile,mSuff=miterSuffix,hiZOracle=hiZOracle,hiZVars=hiZVars,debug=debug)
+        logging.info(f'Miter logic successfully created and located at: {miterFile}')
+    else:   # Recovery mode
+        miterFile = recMiterFn
+        logging.info(f'SAT attack running in recovery mode, using the user-provided miter file at: {miterFile}')
 
     # SAT attack loop
     iters = 1
-    pastDIPs = []
+    allDIPs = []
+    allOuts = []
     while(True):
         # If 2^N rounds exceeded, the attack has failed to terminate correctly.
         if(iters > ((2**len(inVars))+1)):
@@ -669,16 +730,17 @@ def satAttack(plLogicFile:str,ioCSV:str,oracleNetlist:str,topModule:str,noEarlyT
             logging.warning(f'Attack entering round {iters}. All possible input patterns have been explored as DIPs. Since all information has been learned, and this round is expected to return UNSAT, this round will be skipped.')
             print('All possible input patterns have been explored as DIPs. Skipping ahead to key solve step...')
             break
+
         # Run SAT on miter & extract DIP if SAT
-        print(f'\nRunning SAT on Miter clauses, round #{iters}')
-        sat,dip = runSAT(miterName,inVars)
-        if not sat:     # Attack loop exit condition
-            logging.info(f'Miter circuit UNSATISFIED at round #{iters}')
+        print(f'\nRunning SAT on Miter clauses, round #{iters}.')
+        sat,dip = runZ3(miterName,inVars)
+        if not sat:         # Attack loop exit condition
+            logging.info(f'Miter circuit UNSATISFIED at round #{iters}.')
             print('UNSAT')
             if iters == 1:  # The base Z3 model is unsatisfiable... you messed up
                 logging.error(f'The provided encrytped logic file is unsatisfiable within itself. Please review and fix {plLogicFile}')
                 raise RuntimeError('Base circuit unsatisfiable. See log for details.')
-            break   # If no more DIPs, we're done
+            break           # If no more DIPs, we're done
         logging.info(f'Miter circuit SATISFIED at round #{iters}. Extracted DIP: {dip}')
         print('SAT\nExtracted DIP:',*dip.items(),'\n',sep=' ')
 
@@ -689,23 +751,26 @@ def satAttack(plLogicFile:str,ioCSV:str,oracleNetlist:str,topModule:str,noEarlyT
         appendMiter(plLogicFile,dip,oracleOut,inVars,keyVars,outVars,miterFile,suff=f'_cp{iters}',debug=debug,hiZVars=hiZVars)
 
         # Append circuit copy to running "DIP circuits" CNF file with DIP and oracle output
-        appendDIPCircuit(plLogicFile,dip,oracleOut,inVars,keyVars,outVars,dipCircuitsFile,suff=f'_cp{iters}',tsVars=hiZVars)
+        appendDIPCircuit(plLogicFile,dip,oracleOut,inVars,keyVars,outVars,dipCircuitsFile,suff=f'_cp{iters}',tsVars=hiZVars,debug=debug)
 
-        # Compare current DIP to past DIPs to see if there is a repeat. If so, throw & log error
-        if debug:
-            for pastIterMin1,pastDIP in enumerate(pastDIPs):
-                if ({} == {k: dip[k] for k in dip if k in pastDIP and dip[k] != pastDIP[k]}):   # If this DIP matches a previous one...
-                    logging.debug(f'The attack has revisited DIP {dip} in round {iters}. This DIP was first explored in round {pastIterMin1+1}. This is the first revisited DIP. The attack has not been formulated properly, and will now terminate early. Check the miter circuit.')
-                    raise RuntimeError('The attack has revisiting a previously-explored DIP. See log for more details.')
-            pastDIPs.append(dip)
+        # Compare latest DIP to past DIPs to see if there is a repeat. If so, throw & log error
+        for pastIterMin1,pastDIP in enumerate(allDIPs):
+            if ({} == {k: dip[k] for k in dip if k in pastDIP and dip[k] != pastDIP[k]}):   # If this DIP matches a previous one...
+                logging.debug(f'The attack has revisited DIP {dip} in round {iters}. This DIP was first explored in round {pastIterMin1+1}. This is the first revisited DIP. The attack has not been formulated properly, and will now terminate early. Check the miter circuit.')
+                raise RuntimeError('The attack has revisited a previously-explored DIP. See log for more details.')
+
+        if debug:       # Checkpoint each round
             miterVars,miterCls = readZ3pl(miterFile)
             writeZ3pl(miterVars,miterCls,os.path.join(debugDir,'miter_final.py'),prnt=True)
-
+        
+        allDIPs.append(dip)
+        allOuts.append(oracleOut)
         iters += 1
 
     # Run SAT on 'DIP Circuits' file
+    #createDIPCircuit(plLogicFile,allDIPs,allOuts,inVars,keyVars,outVars,dipCircuitsFile,tsVars=hiZVars,debug=debug)
     print('\nRunning SAT on all extracted DIPS...')
-    sat,key = runSAT(dipCircuitsName,keyVars)
+    sat,key = runZ3(dipCircuitsName,keyVars)
     if not sat:
         logging.error('DIP Circuit UNSATISFIED - SAT ATTACK FAILED')
         print('DIP Circuit UNSATISFIED - SAT ATTACK FAILED')
@@ -739,9 +804,11 @@ if __name__ == '__main__':
     parser.add_argument('-e','--disableEarlyTermination',default=True,action='store_false',help='By default, skips the final (UNSAT) round of the attack if all possible inputs are explored as DIPs. Enable flag to go through final round regardless')
     parser.add_argument('-d','--debug',default=False,action='store_true',help='Creates intermediate scripts in a "debug" directory, for the purposes of troubleshooting when an attack goes awry')
     parser.add_argument('-f','--fresh',default=False,action='store_true',help='Create fresh directories for SAT attack. WARNING: deletes preexisting logs and outputs')
+    parser.add_argument('-o','--oracleType',default=True,action='store_false',help='In cases where a circuit can express tri-state outputs, this indicates if the oracle can express HiZ outputs. Setting the flag indicates that the oracle cannot express HiZ outputs.')
     parser.add_argument('-p','--pythonOracle',default=False,action='store_true',help='If true, oraclenetlist points to a Python oracle file (alternative to using iVerilog). Oracle function must be declared as "main", and all input variable names must coincide with inputList')
     parser.add_argument('-q','--quiet',default=False,action='store_true',help='Prevent printing of SAT attack progress to terminal')
+    parser.add_argument('-r','--recover',default=None,action='store',dest='recMiterFn',help='Set this flag and point to a running miter file (likely in a work/ directory)')
     parser.add_argument('-z','--tristate',default=False,action='store_true',help='Enables "tri-state" mode for circuit outputs. High-impedance mode considers situations where an output may exhibit tri-state behavior and its associated logic value may be invalid. The correlating tri-state variable name must be listed after the "output" type in the ioCSV file')
-    clArgs=parser.parse_args()
+    clArgs = parser.parse_args()
 
-    satAttack(clArgs.plLogicFile,clArgs.ioCSV,clArgs.oracleNetlist,clArgs.topModule,clArgs.disableEarlyTermination,clArgs.fresh,clArgs.pythonOracle,clArgs.debug,clArgs.quiet,clArgs.tristate)
+    satAttack(clArgs.plLogicFile,clArgs.ioCSV,clArgs.oracleNetlist,clArgs.topModule,clArgs.disableEarlyTermination,clArgs.fresh,clArgs.oracleType,clArgs.pythonOracle,clArgs.debug,clArgs.quiet,clArgs.recMiterFn,clArgs.tristate)

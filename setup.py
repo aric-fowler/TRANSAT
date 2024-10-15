@@ -5,7 +5,7 @@ https://packaging.python.org/en/latest/tutorials/packaging-projects/
 
 Author:     Aric Fowler
 Python:     3.10.12
-Updated:    Feb 2024
+Updated:    Oct 2024
 '''
 import setuptools
 
@@ -14,7 +14,7 @@ with open('README.md','r',encoding='utf-8') as fhand:
 
 setuptools.setup(
     name='transat',
-    version='0.1.1',
+    version='0.1.4',
     author='Aric Fowler',
     author_email='aric.fowler@utdallas.edu',
     description='TRANSAT is a set of SAT tools for solving the transistor-level circuit technologies, built around the Microsoft Z3 SMT solver.',
@@ -38,7 +38,10 @@ setuptools.setup(
         'console_scripts': [
             'satAttack = src.satAttack_cli:main',
             'satVerify = src.satVerify_cli:main',
-            'trapFabricBuilder = src.trapFabricBuilder_cli:main'
+            'trapFabricBuilder = src.trapFabricBuilder_cli:main',
+            'crTRAPFabricBuilder = src.crTRAPFabricBuilder_cli:main',
+            'lutCRFabricBuilder = src.lutCRFabricBuilder_cli:main',
+            'abcAttack = src.abcAttack_cli:main'
         ]
     }
 )

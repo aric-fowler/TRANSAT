@@ -1,0 +1,16 @@
+Feb-13-2024_03-28PM INFO: SAT attack script called at: 2024-02-13 15:28:02.985392
+
+Feb-13-2024_03-28PM INFO: Target PL file: trapNAND2.py
+
+Feb-13-2024_03-28PM INFO: Output directories created.
+
+Feb-13-2024_03-28PM WARNING: Code does not currently support cross-checking I/O names found in text lists against netlist files. Please check manually.
+
+Feb-13-2024_03-28PM INFO: Creating SAT verification script, here: /home/axf190026/Projects/TRAP/Security/SAT_Tools_v2/test/Test08-TRAP_NAND2/work/verMiter.py
+
+Feb-13-2024_03-28PM INFO: Running SAT verification script...
+
+Feb-13-2024_03-28PM INFO: Verification successful! Programmed circuit works correctly for all input patterns.
+
+Feb-13-2024_03-28PM INFO: satVerify.py concluded. Total runtime: 0:00:00.786058 seconds
+

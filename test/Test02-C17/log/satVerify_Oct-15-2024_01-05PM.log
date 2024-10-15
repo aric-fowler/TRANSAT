@@ -1,0 +1,16 @@
+Oct-15-2024_01-05PM INFO: SAT verification script called at: 2024-10-15 13:05:06.935296
+
+Oct-15-2024_01-05PM INFO: Target PL file: encryptC17pl.py
+
+Oct-15-2024_01-05PM INFO: Output directories created.
+
+Oct-15-2024_01-05PM WARNING: Code does not currently support cross-checking I/O names found in text lists against netlist files. Please check manually.
+
+Oct-15-2024_01-05PM INFO: Creating SAT verification script, here: /home/axf190026/Projects/TRAP/Security/SAT_Tools_v2/test/Test02-C17/work/verMiter.py
+
+Oct-15-2024_01-05PM INFO: Running SAT verification script...
+
+Oct-15-2024_01-05PM INFO: Verification successful! Programmed circuit works correctly for all input patterns.
+
+Oct-15-2024_01-05PM INFO: satVerify.py concluded. Total runtime: 0:00:00.067716 seconds
+

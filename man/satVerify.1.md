@@ -2,8 +2,8 @@
 title: SATVERIFY
 section: 1
 header: User Manual
-footer: satVerify 0.1.1
-date: February 8, 2024
+footer: satVerify 0.1.2
+date: February 13, 2024
 ---
 
 # NAME

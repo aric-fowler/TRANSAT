@@ -30,6 +30,9 @@ satAttack plLogicFile ioCSV oracleNetlist oracleName
 
 # SAT verification:
 satVerify plEncryptedFile plFunctionFile ioCSV keyValueCSV
+
+# Alternative SAT attack based on ABC tool:
+abcAttack encryptedVerilog.v oracleVerilog.v
 ```
 
 ### Within Python:

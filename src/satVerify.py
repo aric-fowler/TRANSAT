@@ -173,7 +173,7 @@ def setup(plLogicFile,fresh,quiet):
         format=logFormat,
         datefmt=logDateFormat,
         level=logging.DEBUG)
-    logging.info(f'SAT attack script called at: {datetime.datetime.now()}')
+    logging.info(f'SAT verification script called at: {datetime.datetime.now()}')
     logging.info(f'Target PL file: {plLogicFile}')
     logging.info('Output directories created.')
 
@@ -373,6 +373,6 @@ if __name__ == '__main__':
     parser.add_argument('-f','--fresh',default=False,action='store_true',help='Create fresh directories for SAT attack. WARNING: deletes preexisting logs and outputs')
     parser.add_argument('-q','--quiet',default=False,action='store_true',help='Prevent printing of SAT attack progress to terminal')
     parser.add_argument('-z','--tristate',default=False,action='store_true',help='Enables "tri-state" mode for circuit outputs. High-impedance mode considers situations where an output may exhibit tri-state behavior and its associated logic value may be invalid. The correlating tri-state variable name must be listed after the "output" type in the ioCSV file')
-    clArgs=parser.parse_args()
+    clArgs = parser.parse_args()
 
     satVerify(clArgs.plEncryptedFile,clArgs.plFunctionFile,clArgs.ioCSV,clArgs.keyValueCSV,clArgs.fresh,clArgs.quiet,clArgs.tristate)
