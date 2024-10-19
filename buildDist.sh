@@ -3,7 +3,6 @@
 # Following this tutorial on building packages:
 # https://packaging.python.org/en/latest/tutorials/packaging-projects/
 #
-# Author:   Aric Fowler
 # Updated:  Oct 2023
 
 rm -rf dist/
