@@ -2,7 +2,6 @@
 '''
 File containing encrypted C17 propositional logic in Z3's Python distribution syntax
 
-Author:     Aric Fowler
 Python:     3.10.6
 Updated:    Apr 2023
 '''
