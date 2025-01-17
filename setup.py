@@ -20,10 +20,10 @@ setuptools.setup(
     description='TRANSAT is a set of SAT tools for solving the transistor-level circuit technologies, built around the Microsoft Z3 SMT solver.',
     long_description=long_description,
     long_description_context_type='text/markdown',
-    url="https://github.com/aric-fowler/STRAPT",
+    url="https://github.com/aric-fowler/TRANSAT",
     data_files= [('share/man/man1/', ['man/satAttack.1','man/satVerify.1'])],
     project_urls={
-        "Bug Tracker":"https://github.com/aric-fowler/STRAPT/issues",
+        "Bug Tracker":"https://github.com/aric-fowler/TRANSAT/issues",
     },
     classifiers=[
         "Programming Language :: Python :: 3",
