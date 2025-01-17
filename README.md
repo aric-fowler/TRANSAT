@@ -9,7 +9,11 @@ Use the package manager [pip](https://pip.pypa.io/en/stable/) to install a local
 [Aric](aric.fowler@utdallas.edu) for the package. Icarus Verilog (iVerilog) may be installd easily using [apt](https://en.wikipedia.org/wiki/APT_(software)).
 
 ```bash
-sudo apt install iverilog
+sudo apt install iverilog python3-pip
+
+git clone https://github.com/aric-fowler/TRANSAT
+
+cd TRANSAT/dist/
 
 pip3 install transat            # .whl or .tar.gz file must be in current directory
 ```
@@ -37,7 +41,8 @@ satVerify plEncryptedFile plFunctionFile ioCSV keyValueCSV
 # Alternative SAT attack based on ABC tool:
 abcAttack encryptedVerilog.v oracleVerilog.v
 ```
-For examples on how to run a SAT attack, see the shell scripts in test/
+For examples on how to run a SAT attack, see the shell scripts in the test/ directory. The output of a SAT attack is  "extracted_key.csv", located in the work/ 
+directory created by the attack script. Verification tool results are printed directly to the terminal. 
 
 ### Within Python:
 ```python
