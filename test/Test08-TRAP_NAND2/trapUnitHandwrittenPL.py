@@ -4,7 +4,6 @@ from z3 import *
 # above (_A), below (_B), left (_W), and right (_Y) of unit
 # _00.
 #
-# Author:   Aric Fowler & Shayan Omais Mohammed
 # Updated:  Oct 2023
 
 # Interconnect net logic values

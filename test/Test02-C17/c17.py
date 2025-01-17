@@ -2,7 +2,6 @@
 '''
 Propositional logic clauses describing an unencrypted (e.g. ASIC) C17. Used for 
 satVerify to verify the extracted key from satAttack.
-Author:     Aric Fowler
 Python:     3.10.6
 Updated:    Nov 2023
 '''

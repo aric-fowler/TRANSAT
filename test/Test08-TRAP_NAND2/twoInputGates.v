@@ -1,5 +1,4 @@
 // 2-input gates
-// Author:      Aric Fowler
 // Date:        Oct 2022
 
 module or2 (a,b,o);
