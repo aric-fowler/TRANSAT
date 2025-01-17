@@ -14,7 +14,7 @@ sudo apt install iverilog
 pip3 install transat            # .whl or .tar.gz file must be in current directory
 ```
 
-To use the ABC SAT attack, [download](https://github.com/berkeley-abc/abc) and install it using the included Makefile. 
+To use the ABC SAT attack, [download ABC](https://github.com/berkeley-abc/abc) and install it using the included Makefile, along with the TRANSAT package.
 
 ## Usage
 
