@@ -15,7 +15,7 @@ git clone https://github.com/aric-fowler/TRANSAT
 
 cd TRANSAT/dist/
 
-pip3 install transat            # .whl or .tar.gz file must be in current directory
+pip3 install *.tar.gz            # Alternatively: $ pip3 install *.whl
 ```
 
 To use the ABC SAT attack, [download ABC](https://github.com/berkeley-abc/abc) and install it using the included Makefile, along with the TRANSAT package.
