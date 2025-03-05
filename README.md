@@ -6,7 +6,7 @@ These functions include SAT attacks and SAT-based verification. These tools can 
 ## Installation
 
 Use the package manager [pip](https://pip.pypa.io/en/stable/) to install a locally-downloaded TRANSAT distribution (available from dist/), or contact 
-[Aric](aric.fowler@utdallas.edu) for the package. Icarus Verilog (iVerilog) may be installd easily using [apt](https://en.wikipedia.org/wiki/APT_(software)).
+[Aric](aric.fowler@utdallas.edu) for the package. Icarus Verilog (iVerilog) may be installed easily using [apt](https://en.wikipedia.org/wiki/APT_(software)).
 
 ```bash
 sudo apt install iverilog python3-pip
