@@ -27,6 +27,7 @@ To use the ABC SAT attack, [download ABC](https://github.com/berkeley-abc/abc) a
 # Help:
 satAttack -h
 satVerify -h
+stateLocate -h
 
 # User manual:
 man satAttack
@@ -39,7 +40,10 @@ satAttack plLogicFile ioCSV oracleNetlist oracleName
 satVerify plEncryptedFile plFunctionFile ioCSV keyValueCSV
 
 # Alternative SAT attack based on ABC tool:
-abcAttack encryptedVerilog.v oracleVerilog.v
+abcAttack encryptedVerilog oracleVerilog
+
+# State location in propositional netlists:
+stateLocate plLogicFile ioCSV
 ```
 For examples on how to run a SAT attack, see the shell scripts in the test/ directory. The output of a SAT attack is  "extracted_key.csv", located in the work/ 
 directory created by the attack script. Verification tool results are printed directly to the terminal. 

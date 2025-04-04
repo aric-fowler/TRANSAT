@@ -14,7 +14,7 @@ with open('README.md','r',encoding='utf-8') as fhand:
 
 setuptools.setup(
     name='transat',
-    version='0.1.4',
+    version='0.1.5',
     author='Aric Fowler',
     author_email='aric.fowler@utdallas.edu',
     description='TRANSAT is a set of SAT tools for solving the transistor-level circuit technologies, built around the Microsoft Z3 SMT solver.',
@@ -41,7 +41,8 @@ setuptools.setup(
             'trapFabricBuilder = src.trapFabricBuilder_cli:main',
             'crTRAPFabricBuilder = src.crTRAPFabricBuilder_cli:main',
             'lutCRFabricBuilder = src.lutCRFabricBuilder_cli:main',
-            'abcAttack = src.abcAttack_cli:main'
+            'abcAttack = src.abcAttack_cli:main',
+            'stateLocate = src.stateLocate_cli:main'
         ]
     }
 )

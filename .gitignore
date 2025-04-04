@@ -13,6 +13,15 @@ test/Test08-TRAP_NAND2/.vscode/
 test/Test08-TRAP_NAND2/testRun.sh
 test/Test08-TRAP_NAND2/debug/
 test/Test10-TransLUT/
-test/Test11-State_Detection/
+test/Test11-State_Detection/log/
+test/Test11-State_Detection/work/
+test/Test11-State_Detection/.vscode/
+test/Test11-State_Detection/__pycache__/
+test/Test11-State_Detection/_stateLocate_old.py 
+test/Test11-State_Detection/debugMiter.py
+test/Test11-State_Detection/jkff.py
+test/Test11-State_Detection/jkff_io.csv
+test/Test11-State_Detection/globals.py
+test/Test11-State_Detection/stateLocate.py
 test/Test12-TRAPFullCustomRoutes/
 test/Test13-LUTFullCustomRoutes/
