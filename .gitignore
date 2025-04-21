@@ -12,6 +12,7 @@ test/Test08-TRAP_NAND2/work/
 test/Test08-TRAP_NAND2/.vscode/
 test/Test08-TRAP_NAND2/testRun.sh
 test/Test08-TRAP_NAND2/debug/
+test/Test09-LUT+Friends/work/__pycache__/
 test/Test10-TransLUT/
 test/Test11-State_Detection/log/
 test/Test11-State_Detection/work/

@@ -1,0 +1,24 @@
+Apr-21-2025_10-57AM INFO: SAT attack script called at: 2025-04-21 10:57:18.451517
+
+Apr-21-2025_10-57AM INFO: Target PL file: trapNAND2.py
+
+Apr-21-2025_10-57AM INFO: Output directories created.
+
+Apr-21-2025_10-57AM WARNING: Code does not currently support cross-checking I/O names found in text lists against netlist files. Please check manually.
+
+Apr-21-2025_10-57AM INFO: Miter logic successfully created and located at: /home/axf190026/Projects/TRAP/Security/SAT_Tools_v2/test/Test08-TRAP_NAND2/work/miter.py
+
+Apr-21-2025_10-57AM INFO: Miter circuit SATISFIED at round #1. Extracted DIP: {'a': False, 'b': True}
+
+Apr-21-2025_10-57AM INFO: Miter circuit SATISFIED at round #2. Extracted DIP: {'a': True, 'b': True}
+
+Apr-21-2025_10-57AM INFO: Miter circuit SATISFIED at round #3. Extracted DIP: {'a': False, 'b': False}
+
+Apr-21-2025_10-57AM INFO: Miter circuit SATISFIED at round #4. Extracted DIP: {'a': True, 'b': False}
+
+Apr-21-2025_10-57AM WARNING: Attack entering round 5. All possible input patterns have been explored as DIPs. Since all information has been learned, and this round is expected to return UNSAT, this round will be skipped.
+
+Apr-21-2025_10-57AM INFO: Key extracted successfully to: /home/axf190026/Projects/TRAP/Security/SAT_Tools_v2/test/Test08-TRAP_NAND2/work/extracted_key.csv
+
+Apr-21-2025_10-57AM INFO: satAttack.py concluded. Total runtime: 0:00:11.723956 seconds
+
