@@ -490,7 +490,7 @@ def runiVerilog(cktIn:list,trgtNetlist:str,topLevelMod:str,inList:list,outList:l
         f.write(trgtTb+'\n')
 
     # Run simulator
-    os.system(f'iverilog -c {ivCmdFn}')
+    os.system(f'iverilog -c "{ivCmdFn}"')
     os.system('./a.out')
 
     # Parse generated output
