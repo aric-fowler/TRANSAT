@@ -1,3 +1,6 @@
+---
+title: TRANSAT README
+---
 # TRANSAT
 
 TRANSAT, or "Transistor-Level SAT Tools", is a Python library for launching SAT-related functions on digital circuits implemented on the transistor level. 
@@ -34,16 +37,16 @@ man satAttack
 man satVerify
 
 # SAT attack:
-satAttack plLogicFile ioCSV oracleNetlist oracleName
+satAttack <plLogicFile> <ioCSV> <oracleNetlist> <oracleName> [-z]
 
 # SAT verification:
-satVerify plEncryptedFile plFunctionFile ioCSV keyValueCSV
+satVerify <plEncryptedFile> <plFunctionFile> <ioCSV> <keyValueCSV>
 
 # Alternative SAT attack based on ABC tool:
-abcAttack encryptedVerilog oracleVerilog
+abcAttack <encryptedVerilog> <oracleVerilog>
 
 # State location in propositional netlists:
-stateLocate plLogicFile ioCSV
+stateLocate <plLogicFile> <ioCSV>
 ```
 For examples on how to run a SAT attack, see the shell scripts in the test/ directory. The output of a SAT attack is  "extracted_key.csv", located in the work/ 
 directory created by the attack script. Verification tool results are printed directly to the terminal. 
