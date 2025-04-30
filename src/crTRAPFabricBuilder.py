@@ -602,7 +602,7 @@ def writeZ3pl(z3Vars:dict,z3Lines:list,z3Fn:str,prnt:bool) -> int:
     return 0
 
 
-def trapFabricBuilder(numRows,numCols,pinMap,debug=False,outputFn='trapFabricPL',maxCount=None):
+def crTRAPFabricBuilder(numRows,numCols,pinMap,debug=False,outputFn='trapFabricPL',maxCount=None):
 
     print(f'Executing {os.path.basename(__file__)}...')
 
@@ -699,7 +699,7 @@ def trapFabricBuilder(numRows,numCols,pinMap,debug=False,outputFn='trapFabricPL'
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser('A tool for generating a model of a given size TRAP fabric with fully custom routes (no interconnect), written in Z3 for Python')
+    parser = argparse.ArgumentParser(prog='crTRAPFabricBuilder',description='A tool for generating a model of a given size TRAP fabric with fully custom routes (no interconnect), written in Z3 for Python')
     parser.add_argument('numRows',type=int,help='The number of rows of TRAP units for the output fabric. Minimum value is 1')
     parser.add_argument('numCols',type=int,help='The number of columns of TRAP units for the output fabric. Minimum value is 1')
     parser.add_argument('pinMap',type=str,help='Path to the comma-delimited CSV file containing a list of I/O pin names, the corresponding L3 or L4 wire they are placed on, and whether the pin is an input or an output')
@@ -708,4 +708,4 @@ if __name__ == '__main__':
     parser.add_argument('-o',action='store',dest='outputFileName',default='trapCRFabricPL',type=str,help='Base name of output files (no extension) to be created in the current directory')
     clArgs = parser.parse_args()
 
-    trapFabricBuilder(clArgs.numRows,clArgs.numCols,clArgs.pinMap,clArgs.debug,clArgs.outputFileName,clArgs.maxCount)
+    crTRAPFabricBuilder(clArgs.numRows,clArgs.numCols,clArgs.pinMap,clArgs.debug,clArgs.outputFileName,clArgs.maxCount)

@@ -610,7 +610,7 @@ def abcAttack(encV,orcV,fresh,fraig):
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser('A SAT attack script built around MiniSAT, iVerilog, and the verification capabilities of ABC')
+    parser = argparse.ArgumentParser(prog='abcAttack',description='A SAT attack script built around MiniSAT, iVerilog, and the verification capabilities of ABC')
     parser.add_argument('encVerilog',type=str,help='Path to Verilog file describing encrypted circuit')
     parser.add_argument('orcVerilog',type=str,help='Path to Verilog file describing unencrypted circuit (oracle)')
     parser.add_argument('-f','--fresh',default=False,action='store_true',help='Creates fresh working and log directories upon calling this script')

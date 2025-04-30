@@ -7,7 +7,7 @@ import argparse
 from .lutCRFabricBuilder import lutCRFabricBuilder
 
 def main():
-    parser = argparse.ArgumentParser('A tool for generating islands of LUTs hardwired together, written in Z3 for Python')
+    parser = argparse.ArgumentParser(prog='lutCRFabricBuilder',description='A tool for generating islands of LUTs hardwired together, written in Z3 for Python')
     parser.add_argument('numLUTs',type=int,help='The number of LUTs for the output fabric. Minimum value is 1')
     parser.add_argument('pinMap',type=str,help='Path to the comma-delimited CSV file containing a list of I/O pin names, the corresponding input wires they are placed on, and whether the pin is an input, output, or route')
     parser.add_argument('-d',action='store_true',dest='debug',default=False,help='Puts verbosity in Z3 output scripts for SMT readout')

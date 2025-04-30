@@ -553,7 +553,7 @@ def stateLocate(plLogicFile:str,ioCSV:str,fresh=False,debug=False,highImpedance=
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser('A tool for running SAT attacks on an encrypted netlist written in Z3 for Python')
+    parser = argparse.ArgumentParser(prog='stateLocate',description='A tool for finding state-holding elements within a netlist written in Z3 for Python')
     parser.add_argument('plLogicFile',type=str,help='Path to the Python file containing propositional logic clauses to be solved. Clauses must be written in the Z3 Python format. For help writing Z3 Python, see: https://www.cs.toronto.edu/~victorn/tutorials/sat20/index.html#installation')
     parser.add_argument('ioCSV',type=str,help='Path to the comma-delimited CSV file containing a list of input/output/key names, their corresponding type (input/output/key), and a corresponding HiZ variable, if applicable.')
     parser.add_argument('-d','--debug',default=False,action='store_true',help='Creates intermediate scripts in a "debug" directory, for the purposes of troubleshooting when an attack goes awry')

@@ -7,7 +7,7 @@ import argparse
 from .crTRAPFabricBuilder import trapFabricBuilder
 
 def main():
-    parser = argparse.ArgumentParser('A tool for generating a model of a given size TRAP fabric with fully custom routes (no interconnect), written in Z3 for Python')
+    parser = argparse.ArgumentParser(prog='crTRAPFabricBuilder',description='A tool for generating a model of a given size TRAP fabric with fully custom routes (no interconnect), written in Z3 for Python')
     parser.add_argument('numRows',type=int,help='The number of rows of TRAP units for the output fabric. Minimum value is 1')
     parser.add_argument('numCols',type=int,help='The number of columns of TRAP units for the output fabric. Minimum value is 1')
     parser.add_argument('pinMap',type=str,help='Path to the comma-delimited CSV file containing a list of I/O pin names, the corresponding L3 or L4 wire they are placed on, and whether the pin is an input or an output')

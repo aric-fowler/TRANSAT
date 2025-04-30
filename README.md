@@ -27,7 +27,7 @@ To use the ABC SAT attack, [download ABC](https://github.com/berkeley-abc/abc) a
 
 ### Command Terminal (Recommended):
 ```bash
-# Help:
+# Help & run description:
 satAttack -h
 satVerify -h
 stateLocate -h
@@ -36,10 +36,10 @@ stateLocate -h
 man satAttack
 man satVerify
 
-# SAT attack:
+# Basic SAT attack:
 satAttack <plLogicFile> <ioCSV> <oracleNetlist> <oracleName> [-z]
 
-# SAT verification:
+# Basic SAT verification:
 satVerify <plEncryptedFile> <plFunctionFile> <ioCSV> <keyValueCSV>
 
 # Alternative SAT attack based on ABC tool:

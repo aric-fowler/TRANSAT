@@ -7,7 +7,7 @@ import argparse
 from .satVerify import satVerify
 
 def main():
-    parser = argparse.ArgumentParser('A tool for running SAT verification on a programmable netlist written in Z3 for Python')
+    parser = argparse.ArgumentParser(prog='satVerify',description='A tool for running SAT verification on a programmable netlist written in Z3 for Python')
     parser.add_argument('plEncryptedFile',type=str,help='Path to a Python file containing propositional logic clauses that require key inputs. Clauses must be written in the Z3 Python format. For help writing Z3 Python, see: https://www.cs.toronto.edu/~victorn/tutorials/sat20/index.html#installation')
     parser.add_argument('plFunctionFile',type=str,help='Path to a Python file containing the counterpart non-encrypted functionality to plEncryptedFile. Clauses must be written in the Z3 Python format. For help writing Z3 Python, see: https://www.cs.toronto.edu/~victorn/tutorials/sat20/index.html#installation')
     parser.add_argument('ioCSV',type=str,help='Path to the comma-delimited CSV file containing a list of input/output/key names, their corresponding type (input/output/key), and a corresponding HiZ variable, if applicable.')

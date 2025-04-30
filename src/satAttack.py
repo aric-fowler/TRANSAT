@@ -796,7 +796,7 @@ def satAttack(plLogicFile:str,ioCSV:str,oracleNetlist:str,topModule:str,noEarlyT
 
 
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser('A tool for running SAT attacks on an encrypted netlist written in Z3 for Python')
+    parser = argparse.ArgumentParser(prog='satAttack',description='A tool for running SAT attacks on an encrypted netlist written in Z3 for Python')
     parser.add_argument('plLogicFile',type=str,help='Path to the Python file containing propositional logic clauses to be solved. Clauses must be written in the Z3 Python format. For help writing Z3 Python, see: https://www.cs.toronto.edu/~victorn/tutorials/sat20/index.html#installation')
     parser.add_argument('ioCSV',type=str,help='Path to the comma-delimited CSV file containing a list of input/output/key names, their corresponding type (input/output/key), and a corresponding HiZ variable, if applicable.')
     parser.add_argument('oracleNetlist',type=str,help='Path to the HDL netlist file for the unencrypted, oracle black box. Input and output names must coincide with what is found in the inputList and outputList files')
