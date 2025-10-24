@@ -15,7 +15,7 @@ from collections import deque
 # -------------------------------------------------------------------------------------------------
 # Globals
 # -------------------------------------------------------------------------------------------------
-from .globals import *      # TRANSAT common global variables
+from globals import *      # TRANSAT common global variables
 logName = 'stateFinder'
 miterName = 'stateFinderMiter'
 miterSuffix = '_m'
@@ -173,6 +173,7 @@ class NetlistGraph:
         Returns a dict of revisited nodes and a list of all nodes included in the cycle
         '''
         prohibitedRevisits = []
+        subGraph = sorted(subGraph)
         queue = deque([subGraph[0]])                # Start arbitrarily with first listed vertex
         visited = {subGraph[0]: [subGraph[0]]}
         fdbkCycles = {}
@@ -185,12 +186,20 @@ class NetlistGraph:
                     queue.append(y)                 # Insert on right of FIFO
                 elif (y in visited.keys()) and (y in subGraph) and (y not in prohibitedRevisits):   # Revisited net 'y' indicates a cycle
                     prohibitedRevisits.extend([x for x in trail if x not in prohibitedRevisits])
-                    cycle = [y]                     # Initialize cycle
-                    stack = trail                   # Initialize stack
-                    while stack[-1] != y:
-                        cycle.append(stack.pop())
-                    fdbkCycles[x] = cycle
+                    if y in trail: #CHANGE TO AVOID while stack[-1] != y: IndexError: list index out of range WHEN RUN
+                        cycle = [y]                     # Initialize cycle
+                        stack = trail                   # Initialize stack
+                        while stack[-1] != y:
+                            cycle.append(stack.pop())
+                        fdbkCycles[x] = cycle
 
+        with open("msc_bfs_output.txt", "a") as f:
+            f.write(f"\n=== Subgraph Cycles ===\n")
+            f.write(f"Subgraph: {subGraph}\n")
+            for k, v in fdbkCycles.items():
+                f.write(f"{k}: {v}\n")    
+        
+            
         return fdbkCycles
 
 
@@ -512,6 +521,9 @@ def stateLocate(plLogicFile:str,ioCSV:str,fresh=False,debug=False,highImpedance=
     inVars,keyVars,outVars,hiZVars = parseIO(ioCSV,plLogicFile,hiZ=highImpedance)
     netsDict,clauseList = readZ3pl(plLogicFile)
 
+    with open("msc_bfs_output.txt", "a") as f:
+            f.write(f"\n=== Input: {os.path.basename(plLogicFile)} ===\n")
+          
     # Create miter circuit from input netlist, extract netlist description, create graph
     buildStateFinder(plLogicFile,inVars,keyVars,outVars,miterFile,mSuff=miterSuffix,hiZVars=hiZVars,debug=debug)
     graph = NetlistGraph(list(netsDict),clauseList)
@@ -547,7 +559,12 @@ def stateLocate(plLogicFile:str,ioCSV:str,fresh=False,debug=False,highImpedance=
     if len(stateNets) == 0:
         print('No state-carrying nets detected')
     else:
-        print(stateNets)
+        print("Number of state-holding nets: ", stateNets)
+        print("Number of state Nets: ", len(stateNets))
+
+    with open("msc_bfs_output.txt", "a") as f:
+            f.write(f"State Nets: {stateNets}\n")
+            f.write(f"Number of state Nets: {len(stateNets)}\n")
 
     return stateNets
 
