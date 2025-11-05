@@ -1,6 +1,8 @@
 g0,input
 g1,input
 g2,input
+r,input
+clk,input
 g66,output
 g67,output
 g117,output
