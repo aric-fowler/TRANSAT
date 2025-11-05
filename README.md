@@ -1,6 +1,3 @@
----
-title: TRANSAT README
----
 # TRANSAT
 
 TRANSAT, or "Transistor-Level SAT Tools", is a Python library for launching SAT-related functions on digital circuits implemented on the transistor level. 
