@@ -11,6 +11,10 @@ import logging
 import copy
 from typing import Tuple
 from collections import deque
+import os
+from concurrent.futures import ProcessPoolExecutor, as_completed
+import multiprocessing as mp
+sys.setrecursionlimit(50000)
 
 # -------------------------------------------------------------------------------------------------
 # Globals
@@ -21,7 +25,6 @@ miterName = 'stateFinderMiter'
 miterSuffix = '_m'
 
 miterFile = os.path.join(here,workDir) + miterName + '.py'
-
 
 # -------------------------------------------------------------------------------------------------
 # Classes & Functions
@@ -172,27 +175,36 @@ class NetlistGraph:
 
         Returns a dict of revisited nodes and a list of all nodes included in the cycle
         '''
+        subGraph = sorted(subGraph)
+        fdbkCycles = {}
+        
         prohibitedRevisits = []
         queue = deque([subGraph[0]])                # Start arbitrarily with first listed vertex
         visited = {subGraph[0]: [subGraph[0]]}
-        fdbkCycles = {}
-        while queue:                                # While length of queue is not 0...
-            x = queue.popleft()                     # Remove from left of FIFO
-            for y in self.fGraph[x]:
-                trail = copy.deepcopy(visited[x])
-                if (y not in visited.keys()) and (y in subGraph):                                   # If net 'y' has not been visited...
-                    visited[y] = trail+[y]
-                    queue.append(y)                 # Insert on right of FIFO
-                elif (y in visited.keys()) and (y in subGraph) and (y not in prohibitedRevisits):   # Revisited net 'y' indicates a cycle
-                    prohibitedRevisits.extend([x for x in trail if x not in prohibitedRevisits])
-                    cycle = [y]                     # Initialize cycle
-                    stack = trail                   # Initialize stack
-                    while stack[-1] != y:
-                        cycle.append(stack.pop())
-                    fdbkCycles[x] = cycle
+
+        while queue:
+            x = queue.popleft()
+            # Sort neighbors for deterministic traversal order
+            for y in sorted(self.fGraph[x]):
+                if (y not in visited.keys()) and (y in subGraph):
+                    # First time visiting y - record the path
+                    trail = copy.deepcopy(visited[x])
+                    visited[y] = trail + [y]
+                    queue.append(y)
+                elif (y in visited.keys()) and (y in subGraph) and (y not in prohibitedRevisits):
+                    # Revisited y - found a cycle, but only if y is in current path
+                    trail = visited[x]
+                    if y in trail:
+                        # y is in the path from start to x, so we have a cycle
+                        prohibitedRevisits.extend([z for z in trail if z not in prohibitedRevisits])
+                        cycle = [y]
+                        stack = trail[:]  # Make a copy
+                        while stack and stack[-1] != y:
+                            cycle.append(stack.pop())
+                        if stack:  # Found y in the path
+                            fdbkCycles[x] = cycle
 
         return fdbkCycles
-
 
     def minimalCycles(self) -> dict:
         '''
@@ -501,55 +513,184 @@ def runZ3(trgtZ3:str,voi=[]) -> Tuple[bool,list]:
     return satisfied,voiVals
 
 
-def stateLocate(plLogicFile:str,ioCSV:str,fresh=False,debug=False,highImpedance=False) -> list:
+def stateLocate(plLogicFile: str, ioCSV: str, fresh=False, debug=False, highImpedance=False, num_threads=None) -> list:
     '''
-    Find the state-holding nets within a Z3 netlist
+    Find state-holding nets using parallel Z3 solving
     '''
-    setup(plLogicFile,fresh=fresh,debug=debug)
+    # Auto-detect CPU count if not specified
+    if num_threads is None:
+        num_threads = os.cpu_count()
+    
+    setup(plLogicFile, fresh=fresh, debug=debug)
 
-    # PREPROCESSING
-    # Parse I/O and nets from input Z3
-    inVars,keyVars,outVars,hiZVars = parseIO(ioCSV,plLogicFile,hiZ=highImpedance)
-    netsDict,clauseList = readZ3pl(plLogicFile)
+    inVars, keyVars, outVars, hiZVars = parseIO(ioCSV, plLogicFile, hiZ=highImpedance)
+    netsDict, clauseList = readZ3pl(plLogicFile)
 
-    # Create miter circuit from input netlist, extract netlist description, create graph
-    buildStateFinder(plLogicFile,inVars,keyVars,outVars,miterFile,mSuff=miterSuffix,hiZVars=hiZVars,debug=debug)
-    graph = NetlistGraph(list(netsDict),clauseList)
+    # Build miter once
+    buildStateFinder(plLogicFile, inVars, keyVars, outVars, miterFile, mSuff=miterSuffix, hiZVars=hiZVars, debug=debug)
+    
+    baseMiterVars, baseMiterClauses = readZ3pl(miterFile)
+    
+    #Base solver setup complete"
 
-
-    # PROCESSING
-    # Run miter file, extract variable results
-    sat,varAssigns = runZ3(miterName)
-    stateNets = []
-
-    while(sat):
-
-        # Find conflicting variables and put them in list
-        diffList = []
-        netsDictPruned = {key: netsDict[key] for key in netsDict if key not in (inVars+keyVars)}      # Ignore primary and key inputs
-        for net in netsDictPruned:
-            if varAssigns[f'{net}{miterSuffix}1'] != varAssigns[f'{net}{miterSuffix}2']:
-                diffList.append(net)
-
-        # Trace variables from diff List - tee-up and then DFS along nets that received conflicting assignments
-        roundStateNets = []
-        for cycle in graph.minimalCycles().values():
-            if set(cycle).issubset(diffList):
-                roundStateNets.extend(cycle)
-
-        # Tie those outputs together - they must have the same value to prevent a discrepancy
-        for net in roundStateNets:
-            writeZ3pl({},[f'({net}{miterSuffix}1 == {net}{miterSuffix}2)\t\t# Frozen state-holding net'],miterFile,append=True)
-
-        stateNets.extend(roundStateNets)
-        sat,varAssigns = runZ3(miterName)
-
+    # Build graph and find SCCs
+    graph = NetlistGraph(list(netsDict), clauseList)
+    all_sccs = graph.reportSCCs(excl=False)
+    state_holding_sccs = [scc for scc in all_sccs if len(scc) > 1 or 
+                         (len(scc) == 1 and scc[0] in graph.fGraph.get(scc[0], []))]
+    
+    #print(f"Found {len(state_holding_sccs)} SCCs with potential state-holding cycles")
+    
+    # Collect all unique cycles
+    all_cycles_to_test = []
+    checked_cycles = set()
+    
+    for scc in sorted(state_holding_sccs, key=lambda x: tuple(sorted(x))):
+        minCyclesDict = graph._bfsMinimumCycles(sorted(scc)) # Use msc_bfs to find the smallest loops within this SCC
+        
+        if not minCyclesDict:
+            # Found a single wire
+            if len(scc) == 1:
+                # Mark this cycle as seen, add it to our test list (avoid testing duplicates)
+                cycle_sig = tuple(sorted(scc))
+                if cycle_sig not in checked_cycles:
+                    checked_cycles.add(cycle_sig)
+                    all_cycles_to_test.append(list(scc))
+        # Otherwise, collect all the unique minimal cycles found
+        else:
+            unique_cycles = set()
+            for cycle in minCyclesDict.values():
+                unique_cycles.add(tuple(sorted(cycle)))
+            
+            # For each unique cycle, if we haven't tested it yet, add it to the test list
+            for cycle_tuple in sorted(unique_cycles):
+                if cycle_tuple not in checked_cycles:
+                    checked_cycles.add(cycle_tuple)
+                    all_cycles_to_test.append(list(cycle_tuple))
+    
+    print(f"Testing {len(all_cycles_to_test)} unique cycles...")
+    
+    # Parallel cycle testing with chunking for better load balancing
+    stateNets = set()
+    completed = 0
+    
+    # Use spawn method for better isolation
+    mp_context = mp.get_context('spawn')
+    
+    # Create a pool of worker processes for parallel processing
+    with ProcessPoolExecutor(max_workers=num_threads, mp_context=mp_context) as executor:
+        # Submit all tasks
+        future_to_cycle = {
+            executor.submit(
+                test_cycle_parallel, 
+                cycle, 
+                baseMiterVars, 
+                baseMiterClauses, 
+                miterSuffix
+            ): cycle 
+            for cycle in all_cycles_to_test
+        }
+        
+        # Collect results
+        for future in as_completed(future_to_cycle):
+            cycle = future_to_cycle[future]
+            completed += 1
+            
+            # Get the result from the worker 
+            try:
+                is_stateful = future.result(timeout=60)  # 60 second timeout per cycle
+                # If the cycle CAN hold state, add all its wires to our collection of state-holding nets
+                if is_stateful:
+                    stateNets.update(cycle)
+                
+                if completed % 50 == 0 or completed == len(all_cycles_to_test):
+                    print(f"  Progress: {completed}/{len(all_cycles_to_test)} ({100*completed//len(all_cycles_to_test)}%) - Found {len(stateNets)} state nets")
+            # Warning if test takes too long      
+            except TimeoutError:
+                logging.warning(f"Timeout testing cycle of size {len(cycle)}")
+            except Exception as e:
+                logging.warning(f"Error testing cycle: {e}")
+    
+    stateNets = sorted(list(stateNets))
+    
     if len(stateNets) == 0:
         print('No state-carrying nets detected')
     else:
-        print(stateNets)
+        print(f"State-holding nets: ", stateNets)
+        print(f"Number of state-holding nets: {len(stateNets)}")
 
     return stateNets
+
+
+def test_cycle_parallel(cycle, baseMiterVars, baseMiterClauses, miterSuffix):
+    '''
+    Function that tests one cycle. Takes: cycle wires, miter circuit info, suffix for copy1/copy2
+    For one loop, ask Z3 "can the two circuit copies have different values on this loop with the same inputs?" - if yes, it's a memory element
+    '''
+    #  Z3 settings for determinism and speed
+    z3.set_param('smt.random_seed', 42)
+    z3.set_param('sat.random_seed', 42)
+    z3.set_param('smt.phase_selection', 5)
+    z3.set_param('sat.phase', 'always_false')
+    z3.set_param('auto_config', False)
+    z3.set_param('smt.arith.solver', 2)  # Faster arithmetic solver
+    
+    # Skip very large cycles (likely not useful)
+    if len(cycle) > 100:
+        return False
+    
+    # Create Z3 variables
+    z3_vars = {}
+    for var, (varType, varArgs) in baseMiterVars.items():
+        if varType == 'Bool':
+            z3_vars[var] = z3.Bool(var)
+        elif varType == 'Int':
+            z3_vars[var] = z3.Int(var)
+        elif varType == 'BitVec':
+            if varArgs:
+                match = re.search(r',\s*(\d+)', varArgs)
+                if match:
+                    z3_vars[var] = z3.BitVec(var, int(match.group(1)))
+                else:
+                    z3_vars[var] = z3.BitVec(var, 8)
+            else:
+                z3_vars[var] = z3.BitVec(var, 8)
+    
+    eval_namespace = {
+        'And': z3.And, 'Or': z3.Or, 'Not': z3.Not, 'Xor': z3.Xor,
+        'Implies': z3.Implies, 'If': z3.If,
+        **z3_vars
+    }
+    
+    # Create solver with timeout
+    solver = z3.Solver()
+    solver.set("timeout", 30000)  # 30 second per-cycle timeout
+    
+    # Add base clauses
+    for clause_str in baseMiterClauses:
+        try:
+            clause = eval(clause_str, {"__builtins__": {}}, eval_namespace)
+            solver.add(clause)
+        except:
+            pass
+    
+    # Add cycle constraints
+    cycle_constraints = []
+    for net in sorted(cycle):
+        net1 = f'{net}{miterSuffix}1' #copy1
+        net2 = f'{net}{miterSuffix}2' #copy2
+        
+        # If both copies of this wire exist in our Z3 variables, add a constraint: wire in copy1 XOR wire in copy2. This means they MUST be different.
+        if net1 in z3_vars and net2 in z3_vars:
+            cycle_constraints.append(z3.Xor(z3_vars[net1], z3_vars[net2]))
+    
+    # Constraint: ALL wires in the cycle must differ between the two copies
+    if cycle_constraints:
+        solver.add(z3.And(*cycle_constraints))
+        result = solver.check()
+        return result == z3.sat
+    
+    return False
 
 
 if __name__ == '__main__':
