@@ -56,6 +56,10 @@ from transat import satAttack
 satAttack(plLogicFile,inputList,keyList,outputList,oracleNetlist,oracleName)
 ```
 
+## Publications
+- [Transistor-level SAT attack](https://tches.iacr.org/index.php/TCHES/article/view/12058)
+- [State detection in transistor-level netlists](https://ieeexplore.ieee.org/document/11219781)
+
 ## License
 
 [GPLv3](https://choosealicense.com/licenses/gpl-3.0/)
