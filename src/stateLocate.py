@@ -389,13 +389,20 @@ def copyCircuit(plClauses:list,allVars:dict,inList:list,keyList:list,outList:lis
         netsList = [x for x in allVars if x not in (inList+outList+keyList)]
         changeList = changeList | {k: allVars[k] for k in set(netsList).intersection(allVars.keys())}
 
-    # Create variable and clause copies
-    clauses = plClauses
+    # Create variable and clause copies.
+    # PERF: the original looped over every changed var and re.sub'd it across
+    # every clause -> O(vars x clauses); on large circuits (e.g. ~55k vars x
+    # ~58k clauses) the miter build never finishes. A single-pass tokenized
+    # rename is O(total chars) and equivalent: each \b\w+\b token is suffixed
+    # iff it is in the change set, else passed through unchanged.
     clauseVars = {k:v for k,v in allVars.items() if k not in changeList}
+    rename = {}
     for var in changeList.keys():
         newVar = var+suffix
-        clauses = [re.sub(r'\b{}\b'.format(var),newVar,i) for i in clauses]
+        rename[var] = newVar
         clauseVars = clauseVars | {newVar: allVars[var]}
+    _tok = re.compile(r'\b\w+\b')
+    clauses = [_tok.sub(lambda m: rename.get(m.group(0), m.group(0)), i) for i in plClauses]
 
     return clauses,clauseVars
 
